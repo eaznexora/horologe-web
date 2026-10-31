@@ -126,7 +126,20 @@ const catalogProducts: Product[] = [
   },
 ];
 
-const filterBrands = ["All", "Rolex", "Omega", "Casio", "Eaz Nexora"];
+export interface WatchCategoryItem {
+  _id: string;
+  name: string;
+  slug: string;
+  rank: number;
+  status: string;
+}
+
+const DEFAULT_WATCH_CATEGORIES: WatchCategoryItem[] = [
+  { _id: "def-1", name: "ROLEX", slug: "rolex", rank: 1, status: "active" },
+  { _id: "def-2", name: "OMEGA", slug: "omega", rank: 2, status: "active" },
+  { _id: "def-3", name: "CASIO", slug: "casio", rank: 3, status: "active" },
+  { _id: "def-4", name: "EAZ NEXORA", slug: "eaz-nexora", rank: 4, status: "active" },
+];
 
 const sortOptions = [
   { id: "newest", label: "Newest" },
@@ -136,12 +149,43 @@ const sortOptions = [
 ];
 
 export default function ProductGrid() {
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [watchCategories, setWatchCategories] = useState<WatchCategoryItem[]>(DEFAULT_WATCH_CATEGORIES);
+  const [activeCategory, setActiveCategory] = useState("ALL");
   const [sortBy, setSortBy] = useState("Newest");
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activePage, setActivePage] = useState(1);
   const sortRef = useRef<HTMLDivElement>(null);
+
+  // Fetch active watch categories from API
+  useEffect(() => {
+    let isMounted = true;
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const cat = params.get("category");
+      if (cat) {
+        setActiveCategory(cat.toUpperCase());
+      }
+    }
+    async function loadWatchCategories() {
+      try {
+        const res = await fetch("/api/admin/watch-categories");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && Array.isArray(data.categories) && data.categories.length > 0) {
+          if (isMounted) {
+            setWatchCategories(data.categories);
+          }
+        }
+      } catch {
+        // Fallback to defaults
+      }
+    }
+    loadWatchCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Close custom desktop dropdown when clicking outside
   useEffect(() => {
@@ -166,11 +210,31 @@ export default function ProductGrid() {
     };
   }, [isMobileFilterOpen]);
 
+  // Dynamic filter buttons: First button is always ALL, remaining are active watch categories
+  const categoryButtons = [
+    { id: "all", name: "ALL", slug: "all" },
+    ...watchCategories
+      .filter((c) => c.status !== "inactive")
+      .map((c) => ({
+        id: c._id,
+        name: c.name.toUpperCase(),
+        slug: c.slug,
+      })),
+  ];
+
   // Filter items based on activeCategory
   const displayedProducts =
-    activeCategory === "All"
+    activeCategory === "ALL" || activeCategory === "all"
       ? catalogProducts
-      : catalogProducts.filter((p) => p.brand.toLowerCase() === activeCategory.toLowerCase());
+      : catalogProducts.filter((p) => {
+          const brand = p.brand.toLowerCase();
+          const active = activeCategory.toLowerCase();
+          return (
+            brand === active ||
+            p.name.toLowerCase().includes(active) ||
+            active.includes(brand)
+          );
+        });
 
   return (
     <section className="w-full bg-[#E7DDD2]">
@@ -180,23 +244,23 @@ export default function ProductGrid() {
         {/* Desktop View (hidden md:flex) */}
         <div className="hidden md:flex justify-between items-center mb-8">
           {/* Left: Filter Buttons */}
-          <div className="flex items-center gap-2">
-            {filterBrands.map((brand) => {
-              const isActive = activeCategory === brand;
+          <div className="flex items-center gap-2 flex-wrap">
+            {categoryButtons.map((cat) => {
+              const isActive = activeCategory === cat.name;
               return (
                 <button
-                  key={brand}
+                  key={cat.id}
                   onClick={() => {
-                    setActiveCategory(brand);
+                    setActiveCategory(cat.name);
                     setActivePage(1);
                   }}
-                  className={`px-4 py-1.5 text-xs tracking-wider uppercase font-medium transition-colors cursor-pointer ${
+                  className={`cursor-pointer ${
                     isActive
-                      ? "bg-[#6D5333] text-white"
-                      : "border border-[#BFAFA0] bg-transparent text-[#3A332C] hover:border-[#6D5333]"
+                      ? "bg-[#5C4529] text-[#FAF6F0] px-4 py-1.5 text-xs tracking-wider uppercase font-medium"
+                      : "bg-[#EBE2D8]/70 hover:bg-[#DECFC0] border border-[#D4C6B3] text-[#2C241E] px-4 py-1.5 text-xs tracking-wider uppercase transition-all"
                   }`}
                 >
-                  {brand}
+                  {cat.name}
                 </button>
               );
             })}
@@ -269,23 +333,26 @@ export default function ProductGrid() {
             }}
           >
             {/* Category Pills */}
-            {filterBrands.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => {
-                  setActiveCategory(cat);
-                  setActivePage(1);
-                }}
-                className={`shrink-0 px-3.5 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors cursor-pointer ${
-                  activeCategory === cat
-                    ? "bg-[#6D5333] text-white border border-[#6D5333]"
-                    : "bg-transparent text-[#3A332C] border border-[#BFAFA0] active:bg-[#6D5333]/20"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+            {categoryButtons.map((cat) => {
+              const isActive = activeCategory === cat.name;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory(cat.name);
+                    setActivePage(1);
+                  }}
+                  className={`shrink-0 cursor-pointer ${
+                    isActive
+                      ? "bg-[#5C4529] text-[#FAF6F0] px-4 py-1.5 text-xs tracking-wider uppercase font-medium"
+                      : "bg-[#EBE2D8]/70 hover:bg-[#DECFC0] border border-[#D4C6B3] text-[#2C241E] px-4 py-1.5 text-xs tracking-wider uppercase transition-all"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -323,26 +390,27 @@ export default function ProductGrid() {
                 {/* Section 1: Brands / Collection */}
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-widest text-[#6D5438] mb-3">
-                    Select Brand
+                    Select Category / Brand
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {filterBrands.map((brand) => {
-                      const isActive = activeCategory === brand;
+                    {categoryButtons.map((cat) => {
+                      const isActive = activeCategory === cat.name;
                       return (
                         <button
-                          key={brand}
+                          key={cat.id}
                           type="button"
                           onClick={() => {
-                            setActiveCategory(brand);
+                            setActiveCategory(cat.name);
                             setActivePage(1);
+                            setIsMobileFilterOpen(false);
                           }}
-                          className={`px-4 py-2 text-xs font-medium uppercase tracking-wider transition-colors cursor-pointer ${
+                          className={`cursor-pointer ${
                             isActive
-                              ? "bg-[#6D5333] text-white border border-[#6D5333]"
-                              : "bg-transparent text-[#3A332C] border border-[#BFAFA0] hover:border-[#6D5333]"
+                              ? "bg-[#5C4529] text-[#FAF6F0] px-4 py-1.5 text-xs tracking-wider uppercase font-medium"
+                              : "bg-[#EBE2D8]/70 hover:bg-[#DECFC0] border border-[#D4C6B3] text-[#2C241E] px-4 py-1.5 text-xs tracking-wider uppercase transition-all"
                           }`}
                         >
-                          {brand}
+                          {cat.name}
                         </button>
                       );
                     })}
@@ -382,7 +450,7 @@ export default function ProductGrid() {
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveCategory("All");
+                    setActiveCategory("ALL");
                     setSortBy("Newest");
                     setActivePage(1);
                   }}
@@ -405,12 +473,25 @@ export default function ProductGrid() {
         {/* 2. PRODUCT CARDS GRID */}
         {/* Unified Responsive Grid: Desktop displays image-only cards (4 cols); Mobile displays image + styled details (2 cols) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
-          {displayedProducts.map((product) => (
-            <Link
-              key={product.id}
-              href={product.href && product.href !== "#" ? product.href : "/timepiece"}
-              className="group flex flex-col bg-[#E7DDD2] h-full cursor-pointer"
-            >
+          {displayedProducts.length === 0 ? (
+            <div className="col-span-full py-16 text-center">
+              <p className="font-serif text-lg text-[#2C241E] mb-2">No timepieces currently cataloged under {activeCategory}</p>
+              <p className="text-xs text-[#7A6C5E] mb-6">Our curators are sourcing and verifying references daily.</p>
+              <button
+                type="button"
+                onClick={() => setActiveCategory("ALL")}
+                className="bg-[#5C4529] hover:bg-[#47341D] text-[#FAF6F0] px-6 py-2 text-xs tracking-widest uppercase font-medium cursor-pointer transition-colors"
+              >
+                View All Watches
+              </button>
+            </div>
+          ) : (
+            displayedProducts.map((product) => (
+              <Link
+                key={product.id}
+                href={product.href && product.href !== "#" ? product.href : "/timepiece"}
+                className="group flex flex-col bg-[#E7DDD2] h-full cursor-pointer"
+              >
               {/* Watch Image & Desktop Hover Overlay */}
               <div className="relative w-full aspect-[4/5] overflow-hidden bg-[#D8CCC0]/40 shadow-sm group-hover:shadow-md transition-shadow duration-500">
                 <Image
@@ -452,7 +533,7 @@ export default function ProductGrid() {
                 </div>
               </div>
             </Link>
-          ))}
+          )))}
         </div>
 
         {/* 3. PAGINATION */}

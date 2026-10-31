@@ -3,25 +3,121 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
-interface CategoryItem {
-  id: string;
-  label: string;
-  href: string;
+export interface SubCategoryItem {
+  _id: string;
+  name: string;
+  slug: string;
+  rank?: number;
 }
 
-const CATEGORIES: CategoryItem[] = [
-  { id: "PRE-OWNED", label: "PRE-OWNED", href: "/collections?category=pre-owned" },
-  { id: "NEW WATCHES", label: "NEW WATCHES", href: "/collections?category=new" },
-  { id: "VINTAGE WATCHES", label: "VINTAGE WATCHES", href: "/collections?category=vintage" },
-  { id: "JEWELLERY", label: "JEWELLERY", href: "/collections?category=jewellery" },
-  { id: "SOLD WATCHES", label: "SOLD WATCHES", href: "/collections?category=sold" },
+export interface DynamicCategory {
+  _id: string;
+  name: string;
+  slug: string;
+  rank: number;
+  status?: string;
+  isTopCategory?: boolean;
+  subcategories: SubCategoryItem[];
+}
+
+const STATIC_FALLBACK_CATEGORIES: DynamicCategory[] = [
+  {
+    _id: "pre-owned",
+    name: "Pre-Owned",
+    slug: "pre-owned",
+    rank: 1,
+    subcategories: [
+      { _id: "sub-1", name: "Men's Collection", slug: "pre-owned-mens-collection" },
+      { _id: "sub-2", name: "Women's Collection", slug: "pre-owned-womens-collection" },
+    ],
+  },
+  {
+    _id: "new-watches",
+    name: "New Watches",
+    slug: "new-watches",
+    rank: 2,
+    subcategories: [
+      { _id: "sub-3", name: "Men's Collection", slug: "new-watches-mens-collection" },
+      { _id: "sub-4", name: "Women's Collection", slug: "new-watches-womens-collection" },
+    ],
+  },
+  {
+    _id: "vintage-watches",
+    name: "Vintage Watches",
+    slug: "vintage-watches",
+    rank: 3,
+    subcategories: [
+      { _id: "sub-5", name: "Men's Collection", slug: "vintage-watches-mens-collection" },
+      { _id: "sub-6", name: "Women's Collection", slug: "vintage-watches-womens-collection" },
+    ],
+  },
+  {
+    _id: "jewellery",
+    name: "Jewellery",
+    slug: "jewellery",
+    rank: 4,
+    subcategories: [],
+  },
+  {
+    _id: "sold-watches",
+    name: "Sold Watches",
+    slug: "sold-watches",
+    rank: 5,
+    subcategories: [],
+  },
 ];
 
 export default function CollectionsMegaMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState("PRE-OWNED");
+  const [categories, setCategories] = useState<DynamicCategory[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("horologe_categories_cache");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {
+        // Fallback to static data
+      }
+    }
+    return STATIC_FALLBACK_CATEGORIES;
+  });
+
+  const [activeParentSlug, setActiveParentSlug] = useState<string>("pre-owned");
   const containerRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch live categories from backend API on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchCategories() {
+      try {
+        const res = await fetch("/api/admin/categories");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && Array.isArray(data.categories) && data.categories.length > 0) {
+          if (isMounted) {
+            const sorted = (data.categories as DynamicCategory[]).sort(
+              (a, b) => (a.rank || 0) - (b.rank || 0)
+            );
+            setCategories(sorted);
+            try {
+              localStorage.setItem("horologe_categories_cache", JSON.stringify(sorted));
+            } catch {
+              // Ignore storage errors
+            }
+          }
+        }
+      } catch {
+        // Graceful fallback to cached or static categories
+      }
+    }
+    fetchCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
@@ -64,6 +160,21 @@ export default function CollectionsMegaMenu() {
     };
   }, []);
 
+  // Sorted active parent categories (only render active items in storefront)
+  const sortedCategories = categories
+    .filter((c) => c.status !== "inactive")
+    .map((c) => ({
+      ...c,
+      subcategories: (c.subcategories || []).filter((s: any) => s.status !== "inactive"),
+    }))
+    .sort((a, b) => (a.rank || 0) - (b.rank || 0));
+
+  // Active Parent Category (defaults to first active parent, e.g. Pre-Owned)
+  const activeParentCategory =
+    sortedCategories.find((c) => c.slug === activeParentSlug) ||
+    sortedCategories[0] ||
+    STATIC_FALLBACK_CATEGORIES[0];
+
   return (
     <div
       ref={containerRef}
@@ -100,24 +211,24 @@ export default function CollectionsMegaMenu() {
         role="menu"
       >
         <div className="flex items-stretch justify-between">
-          {/* Column 1: Primary Category List (~34% width) */}
+          {/* Column 1: Primary Category List (Ordered by rank) */}
           <div className="w-[33%] shrink-0">
             <nav className="flex flex-col space-y-1.5 text-xs lg:text-[13px] tracking-[0.16em] uppercase font-medium">
-              {CATEGORIES.map((cat) => {
-                const isActive = activeCategory === cat.id;
+              {sortedCategories.map((cat) => {
+                const isActive = activeParentCategory?.slug === cat.slug;
                 return (
-                  <div key={cat.id}>
+                  <div key={cat._id || cat.slug}>
                     <Link
-                      href={cat.href}
-                      onMouseEnter={() => setActiveCategory(cat.id)}
+                      href={`/collections?category=${encodeURIComponent(cat.slug)}`}
+                      onMouseEnter={() => setActiveParentSlug(cat.slug)}
                       onClick={() => setIsOpen(false)}
-                      className={`transition-colors cursor-pointer select-none ${
+                      className={`transition-colors cursor-pointer select-none block ${
                         isActive
-                          ? "bg-[#F5DFC6] text-[#2C241E] font-medium px-3 py-1 -ml-3 inline-block"
-                          : "text-[#4A423A] hover:text-[#9D7E50] py-1 px-3 -ml-3 inline-block"
+                          ? "bg-[#F5DFC6] text-[#2C241E] font-medium px-3 py-1 -ml-3"
+                          : "text-[#4A423A] hover:text-[#9D7E50] py-1 px-3 -ml-3"
                       }`}
                     >
-                      {cat.label}
+                      {cat.name.toUpperCase()}
                     </Link>
                   </div>
                 );
@@ -128,36 +239,55 @@ export default function CollectionsMegaMenu() {
           {/* Vertical Hairline Divider */}
           <div className="w-[1px] bg-[#EBDCCB] self-stretch mx-4 my-0.5" />
 
-          {/* Column 2: Sub-category Links */}
+          {/* Column 2: Dynamic Sub-category Links for activeParentCategory */}
           <div className="flex-1 min-w-[140px] pl-1">
             <span className="text-[11px] uppercase tracking-[0.18em] text-[#A69B8F] font-medium mb-2.5 block">
-              {activeCategory}
+              {activeParentCategory?.name.toUpperCase() || "SELECTION"}
             </span>
             <div className="space-y-0.5">
-              <Link
-                href={`/collections?type=${encodeURIComponent(
-                  activeCategory.toLowerCase()
-                )}&gender=men`}
-                onClick={() => setIsOpen(false)}
-                className="block text-xs lg:text-[13px] text-[#3A332C] hover:text-[#9D7E50] font-sans py-1 transition-colors cursor-pointer"
-              >
-                Men&apos;s Collection
-              </Link>
-              <Link
-                href={`/collections?type=${encodeURIComponent(
-                  activeCategory.toLowerCase()
-                )}&gender=women`}
-                onClick={() => setIsOpen(false)}
-                className="block text-xs lg:text-[13px] text-[#3A332C] hover:text-[#9D7E50] font-sans py-1 transition-colors cursor-pointer"
-              >
-                Women&apos;s Collection
-              </Link>
+              {activeParentCategory?.subcategories && activeParentCategory.subcategories.length > 0 ? (
+                activeParentCategory.subcategories.map((sub) => (
+                  <Link
+                    key={sub._id || sub.slug}
+                    href={`/collections?category=${encodeURIComponent(
+                      activeParentCategory.slug
+                    )}&sub=${encodeURIComponent(sub.slug)}`}
+                    onClick={() => setIsOpen(false)}
+                    className="block text-xs lg:text-[13px] text-[#3A332C] hover:text-[#9D7E50] font-sans py-1 transition-colors cursor-pointer"
+                  >
+                    {sub.name}
+                  </Link>
+                ))
+              ) : (
+                <div className="space-y-1">
+                  <Link
+                    href={`/collections?category=${encodeURIComponent(
+                      activeParentCategory?.slug || "all"
+                    )}`}
+                    onClick={() => setIsOpen(false)}
+                    className="block text-xs lg:text-[13px] text-[#3A332C] hover:text-[#9D7E50] font-sans py-1 transition-colors cursor-pointer"
+                  >
+                    All {activeParentCategory?.name || "Timepieces"}
+                  </Link>
+                  <span className="text-[11px] text-[#A69B8F] italic block py-0.5">
+                    Curated vault selection
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Column 3: Feature Media Showcase (Landscape Banner) */}
           <div className="shrink-0 flex items-center justify-end pl-3">
-            <div className="w-[170px] lg:w-[185px] aspect-[16/10] bg-[#D8D1C7] rounded-none overflow-hidden shrink-0" />
+            <div className="w-[170px] lg:w-[185px] aspect-[16/10] bg-[#E7DDD2] border border-[#E0D1C1] rounded-none overflow-hidden shrink-0 flex items-center justify-center p-3 text-center">
+              <span className="font-serif text-[11px] uppercase tracking-widest text-[#7A6C5E] leading-tight">
+                HOROLOGE ROYALE
+                <br />
+                <span className="text-[9px] tracking-normal lowercase text-[#9E8D7E]">
+                  curated vaults
+                </span>
+              </span>
+            </div>
           </div>
         </div>
       </div>

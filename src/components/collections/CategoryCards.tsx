@@ -25,8 +25,8 @@ const categoryCards: CategoryCardItem[] = [
   {
     id: "brandnew",
     image: "/assets/categories-brandnew.png",
-    alt: "Horologe Royale Peti Packed Brand New Collections - Exceptional By Nature",
-    buttonText: "Peti Packed Collections →",
+    alt: "Horologe Royale New Collections - Exceptional By Nature",
+    buttonText: "New Collection →",
     href: "#",
     width: 625,
     height: 280,
