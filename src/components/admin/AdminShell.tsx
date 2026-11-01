@@ -20,7 +20,7 @@ export default function AdminShell({ children }: AdminShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#EFE6DC] text-[#2C241E] flex flex-col relative overflow-x-hidden font-sans antialiased selection:bg-[#DFD2C2] selection:text-[#2C241E]">
+    <div className="admin-panel min-h-screen bg-[#EFE6DC] text-[#2C241E] flex flex-col relative overflow-x-hidden font-sans antialiased selection:bg-[#DFD2C2] selection:text-[#2C241E]">
       {/* Background Editorial Canvas Texture & Atmospheric Staging */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <Image
@@ -137,6 +137,7 @@ export default function AdminShell({ children }: AdminShellProps) {
                     src="/assets/nafis-avatar.jpg"
                     alt="Nafis Ansari"
                     fill
+                    sizes="(max-width: 768px) 40px, 48px"
                     className="object-cover"
                   />
                 </div>

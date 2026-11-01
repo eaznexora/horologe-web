@@ -31,7 +31,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
     { label: "About Us", href: "#" },
     { label: "Our Collection", href: "/collections" },
     { label: "Buying", href: "#" },
-    { label: "Selling", href: "#" },
+    { label: "Selling", href: "/sell-your-luxury" },
     { label: "Insights", href: "#" },
   ];
 

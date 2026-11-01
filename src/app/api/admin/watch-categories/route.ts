@@ -10,7 +10,7 @@ const SEED_WATCH_CATEGORIES = [
 ];
 
 // GET: Returns active categories ordered by rank (or all if ?admin=true)
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
     await connectToDatabase();
 
@@ -23,17 +23,21 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const isAdmin = searchParams.get('admin') === 'true' || searchParams.get('all') === 'true';
 
-    const filter = isAdmin ? {} : { status: 'active' as const };
+    const filter: any = isAdmin ? {} : { status: 'active' };
     const categories = await WatchCategory.find(filter).sort({ rank: 1, createdAt: 1 }).lean();
 
-    return NextResponse.json({ success: true, categories }, { status: 200 });
+    return NextResponse.json({ success: true, categories });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Error fetching watch categories:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to fetch watch categories' },
+      { status: 500 }
+    );
   }
 }
 
 // POST: Creates new watch category with auto-slug
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     await connectToDatabase();
     const body = await req.json();
@@ -61,12 +65,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, category: newCategory }, { status: 201 });
   } catch (error: any) {
+    console.error('Error creating watch category:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
-// PATCH: Updates rank (allowing 0), name, or status (active/inactive)
-export async function PATCH(req: NextRequest) {
+// PATCH: Update rank, status, or name
+export async function PATCH(req: Request) {
   try {
     await connectToDatabase();
     const { id, rank, status, name } = await req.json();
@@ -78,17 +83,18 @@ export async function PATCH(req: NextRequest) {
     const updateData: any = {};
     if (typeof rank === 'number') updateData.rank = Math.max(0, rank);
     if (status) updateData.status = status;
-    if (name && name.trim()) updateData.name = name.trim();
+    if (name) updateData.name = name.trim();
 
     const updated = await WatchCategory.findByIdAndUpdate(id, updateData, { new: true });
     return NextResponse.json({ success: true, category: updated }, { status: 200 });
   } catch (error: any) {
+    console.error('Error updating watch category:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
-// DELETE: Removes by ?id=...
-export async function DELETE(req: NextRequest) {
+// DELETE: Remove watch category
+export async function DELETE(req: Request) {
   try {
     await connectToDatabase();
     const { searchParams } = new URL(req.url);
@@ -99,8 +105,9 @@ export async function DELETE(req: NextRequest) {
     }
 
     await WatchCategory.findByIdAndDelete(id);
-    return NextResponse.json({ success: true, message: 'Category removed' }, { status: 200 });
+    return NextResponse.json({ success: true, message: 'Watch category removed' }, { status: 200 });
   } catch (error: any) {
+    console.error('Error deleting watch category:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

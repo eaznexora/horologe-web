@@ -34,3 +34,29 @@ h1, h2, h3, h4, h5, h6, .font-serif {
 .font-times-card, .font-times-card * {
   font-family: 'Times New Roman', Times, Georgia, serif !important;
 }
+
+/* ========================================================================== */
+/* ADMIN PANEL: STRICT MANROPE FONT ONLY (DOES NOT AFFECT USER/STOREFRONT)    */
+/* ========================================================================== */
+.admin-panel,
+.admin-panel *,
+.admin-panel h1,
+.admin-panel h2,
+.admin-panel h3,
+.admin-panel h4,
+.admin-panel h5,
+.admin-panel h6,
+.admin-panel .font-serif,
+.admin-panel [class*="font-serif"],
+.admin-panel button,
+.admin-panel input,
+.admin-panel select,
+.admin-panel textarea {
+  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Allow explicit monospace for SKU / code tags in admin */
+.admin-panel .font-mono,
+.admin-panel code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
