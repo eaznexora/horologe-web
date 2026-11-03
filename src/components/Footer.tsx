@@ -36,6 +36,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
   ];
 
   const supportLinks = [
+    { label: "Concierge Desk", href: "/concierge" },
     { label: "FAQs", href: "#" },
     { label: "Shipping Information", href: "#" },
     { label: "Return Policy", href: "#" },

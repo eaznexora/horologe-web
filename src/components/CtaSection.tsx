@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 export default function CtaSection() {
   return (
@@ -37,18 +38,18 @@ export default function CtaSection() {
 
             {/* CTA Buttons (Side-by-Side) */}
             <div className="flex items-center gap-4">
-              <button
-                type="button"
-                className="bg-[#6D5333] hover:bg-[#594226] text-[#F4EDE4] text-sm lg:text-[15px] tracking-wide min-w-[200px] lg:min-w-[220px] text-center py-4 px-10 transition-colors duration-300 font-medium cursor-pointer"
+              <Link
+                href="/contact"
+                className="bg-[#6D5333] hover:bg-[#594226] text-[#F4EDE4] text-sm lg:text-[15px] tracking-wide min-w-[200px] lg:min-w-[220px] text-center py-4 px-10 transition-colors duration-300 font-medium cursor-pointer inline-block"
               >
                 Get in Touch
-              </button>
-              <button
-                type="button"
-                className="border border-[#8F775B] text-[#705537] hover:bg-[#8F775B]/10 text-sm lg:text-[15px] tracking-wide min-w-[200px] lg:min-w-[220px] text-center py-4 px-10 transition-colors duration-300 font-medium cursor-pointer"
+              </Link>
+              <Link
+                href="/contact#boutique"
+                className="border border-[#8F775B] text-[#705537] hover:bg-[#8F775B]/10 text-sm lg:text-[15px] tracking-wide min-w-[200px] lg:min-w-[220px] text-center py-4 px-10 transition-colors duration-300 font-medium cursor-pointer inline-block"
               >
                 Visit Us
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -79,18 +80,18 @@ export default function CtaSection() {
 
           {/* CTA Buttons (Stacked Full Width) */}
           <div className="flex flex-col gap-3 w-full mb-8">
-            <button
-              type="button"
-              className="w-full py-3.5 bg-[#6D5333] hover:bg-[#594226] text-[#F4EDE4] text-center text-sm tracking-wide font-medium transition-colors duration-300 cursor-pointer"
+            <Link
+              href="/contact"
+              className="w-full py-3.5 bg-[#6D5333] hover:bg-[#594226] text-[#F4EDE4] text-center text-sm tracking-wide font-medium transition-colors duration-300 cursor-pointer block"
             >
               Get in Touch
-            </button>
-            <button
-              type="button"
-              className="w-full py-3.5 border border-[#8F775B] text-[#705537] hover:bg-[#8F775B]/10 text-center text-sm tracking-wide font-medium transition-colors duration-300 cursor-pointer"
+            </Link>
+            <Link
+              href="/contact#boutique"
+              className="w-full py-3.5 border border-[#8F775B] text-[#705537] hover:bg-[#8F775B]/10 text-center text-sm tracking-wide font-medium transition-colors duration-300 cursor-pointer block"
             >
               Visit Us
-            </button>
+            </Link>
           </div>
         </div>
 

@@ -5,33 +5,33 @@ import React, { useState } from "react";
 const faqItems = [
   {
     id: 1,
-    question: "Are all your timepieces authenticated?",
+    question: "How does Horologe Royale guarantee the authenticity of every timepiece?",
     answer:
-      "Yes. Every timepiece is carefully examined and authenticated by our experts before being offered to our clients. We prioritise transparency, provenance, and complete confidence with every acquisition.",
+      "Every watch undergoes a rigorous multi-point mechanical and provenance inspection by our certified master horologists. We verify serial numbers, movement calibres, case integrity, and archival records. Every purchase is backed by our lifetime authenticity guarantee and Horologe Royale certification.",
   },
   {
     id: 2,
-    question: "Are all your timepieces authenticated?",
+    question: "Can I inspect a watch in person before acquisition?",
     answer:
-      "Every watch undergoes a rigorous multi-point inspection to ensure full provenance, mechanical integrity, and authentic component originality.",
+      "Yes. Clients are welcome to schedule a private viewing appointment at our boutique in Kala Ghoda, Fort, Mumbai. Our concierge desk prepares the timepiece for private hands-on examination in a discreet, secure salon.",
   },
   {
     id: 3,
-    question: "Are all your timepieces authenticated?",
+    question: "What is the process for selling or consigning a luxury watch?",
     answer:
-      "We provide comprehensive documentation and certificates of authenticity with every purchase, guaranteed by our horological specialists.",
+      "Submit your watch details through our online valuation portal or visit our boutique. Within 24 hours, our acquisitions team provides a competitive market valuation. Once inspected in person, settlement is executed immediately via secure bank transfer.",
   },
   {
     id: 4,
-    question: "Are all your timepieces authenticated?",
+    question: "How are timepieces packaged and delivered across India?",
     answer:
-      "Our master watchmakers thoroughly verify serial numbers, movement calibers, and case hallmarks before any timepiece enters our collection.",
+      "All domestic and international shipments are fully insured and handled exclusively through armored courier partners (including Brink's and Malca-Amit). Packages require multi-factor identity verification and biometric signature upon delivery.",
   },
   {
     id: 5,
-    question: "Are all your timepieces authenticated?",
+    question: "Do all watches come with original factory box and papers?",
     answer:
-      "We stand behind every piece with our lifetime authenticity guarantee, ensuring absolute peace of mind for collectors and enthusiasts alike.",
+      "Each listing clearly states its exact scope of delivery (e.g., Full Set, Watch with Papers, or Archive Extraction). Regardless of original documentation presence, every timepiece is delivered in a handcrafted Horologe Royale collector vault box with an authenticated condition certificate and mechanical warranty.",
   },
 ];
 

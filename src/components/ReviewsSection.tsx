@@ -4,23 +4,23 @@ const reviews = [
   {
     id: 1,
     quote:
-      "An exceptional experience from start to finish. The team's knowledge, transparency, and attention to detail gave me complete confidence in my purchase.",
-    author: "Z. Rashid",
-    role: "First-Time Collector",
+      "Acquiring a reference 116500LN requires immense trust. The Horologe Royale team provided full provenance documentation, pristine condition verification, and seamless hand-delivery in Mumbai. Flawless concierge execution.",
+    author: "A. Singhania",
+    role: "Private Collector, Mumbai",
   },
   {
     id: 2,
     quote:
-      "An exceptional experience from start to finish. The team's knowledge, transparency, and attention to detail gave me complete confidence in my purchase.",
-    author: "Z. Rashid",
-    role: "First-Time Collector",
+      "Selling my Royal Oak was effortless. From initial digital valuation to physical inspection at their Kala Ghoda boutique, their horologists were transparent, professional, and expedited settlement within the same day.",
+    author: "R. Mehta",
+    role: "Verified Client, Dubai",
   },
   {
     id: 3,
     quote:
-      "An exceptional experience from start to finish. The team's knowledge, transparency, and attention to detail gave me complete confidence in my purchase.",
+      "An extraordinary curation of rare vintage and contemporary references. The depth of knowledge and discretion shown by their private desk gives complete confidence with every acquisition.",
     author: "Z. Rashid",
-    role: "First-Time Collector",
+    role: "First-Time Horology Collector",
   },
 ];
 

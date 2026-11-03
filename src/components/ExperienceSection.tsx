@@ -1,14 +1,38 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+
+const DESKTOP_HERO_CARDS = [
+  { id: "mtw-1", src: "/assets/MTW-1.png", alt: "Buy New Watches" },
+  { id: "mtw-2", src: "/assets/MTW-2.png", alt: "Buy Pre-Owned Watches" },
+];
+
+const DESKTOP_BOTTOM_CARDS = [
+  { id: "mtw-3", src: "/assets/MTW-3.png", alt: "Horology Concierge Inspection" },
+  { id: "mtw-4", src: "/assets/MTW-4.png", alt: "Master Watchmaker Provenance" },
+  { id: "mtw-5", src: "/assets/MTW-5-6-7.png", alt: "Curated Vault Watch Tray 1" },
+  { id: "mtw-6", src: "/assets/MTW-5-6-7.png", alt: "Curated Vault Watch Tray 2" },
+  { id: "mtw-7", src: "/assets/MTW-5-6-7.png", alt: "Curated Vault Watch Tray 3" },
+];
+
+// Strictly exclude MTW-1.png and MTW-2.png from mobile slider
+const MOBILE_SLIDER_BASE = [
+  { id: "m-3", src: "/assets/MTW-3.png", alt: "Horology Concierge Inspection" },
+  { id: "m-4", src: "/assets/MTW-4.png", alt: "Master Watchmaker Provenance" },
+  { id: "m-5", src: "/assets/MTW-5-6-7.png", alt: "Curated Vault Watch Tray 1" },
+  { id: "m-6", src: "/assets/MTW-5-6-7.png", alt: "Curated Vault Watch Tray 2" },
+  { id: "m-7", src: "/assets/MTW-5-6-7.png", alt: "Curated Vault Watch Tray 3" },
+];
+
+// Duplicate for continuous seamless auto-scrolling
+const MOBILE_SLIDER_CARDS = [...MOBILE_SLIDER_BASE, ...MOBILE_SLIDER_BASE];
 
 export default function ExperienceSection() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isInteractingRef = useRef(false);
   const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // 6 cards duplicated (12 items) for seamless looping
-  const cards = Array.from({ length: 12 });
 
   useEffect(() => {
     const slider = sliderRef.current;
@@ -73,17 +97,38 @@ export default function ExperienceSection() {
 
         {/* Row 1: Top Hero Pair */}
         <div className="grid grid-cols-2 gap-5 lg:gap-6 mb-5 lg:mb-6">
-          <div className="h-[260px] lg:h-[300px] w-full bg-[#D8D1C7] transition-opacity duration-300 hover:opacity-95" />
-          <div className="h-[260px] lg:h-[300px] w-full bg-[#D8D1C7] transition-opacity duration-300 hover:opacity-95" />
+          {DESKTOP_HERO_CARDS.map((card) => (
+            <div 
+              key={card.id} 
+              className="relative h-[260px] lg:h-[300px] overflow-hidden group shadow-[0_8px_24px_rgba(44,36,30,0.06)]"
+            >
+              <Image 
+                src={card.src} 
+                alt={card.alt} 
+                fill 
+                priority 
+                sizes="(max-width: 1440px) 50vw, 700px" 
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]" 
+              />
+            </div>
+          ))}
         </div>
 
         {/* Row 2: Bottom 5 Columns */}
         <div className="grid grid-cols-5 gap-4 lg:gap-5 mb-6 lg:mb-7">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="aspect-[3/4] h-[280px] lg:h-[320px] w-full bg-[#D8D1C7] transition-opacity duration-300 hover:opacity-95"
-            />
+          {DESKTOP_BOTTOM_CARDS.map((card) => (
+            <div 
+              key={card.id} 
+              className="relative aspect-[3/4] h-[280px] lg:h-[320px] overflow-hidden group shadow-[0_6px_20px_rgba(44,36,30,0.05)]"
+            >
+              <Image 
+                src={card.src} 
+                alt={card.alt} 
+                fill 
+                sizes="(max-width: 1440px) 20vw, 280px" 
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-105" 
+              />
+            </div>
           ))}
         </div>
       </div>
@@ -114,21 +159,32 @@ export default function ExperienceSection() {
             msOverflowStyle: "none",
           }}
         >
-          {cards.map((_, i) => (
+          {MOBILE_SLIDER_CARDS.map((card, index) => (
             <div
-              key={i}
-              className="flex-shrink-0 w-[72vw] max-w-[280px] aspect-[3/4] bg-[#D8D1C7] snap-center rounded-none"
-            />
+              key={`${card.id}-${index}`}
+              className="w-[72vw] max-w-[280px] aspect-[3/4] shrink-0 snap-center relative overflow-hidden shadow-[0_6px_20px_rgba(44,36,30,0.06)] rounded-none"
+            >
+              <Image 
+                src={card.src} 
+                alt={card.alt} 
+                fill 
+                sizes="72vw" 
+                className="object-cover" 
+              />
+            </div>
           ))}
         </div>
       </div>
 
       {/* Action Ribbon Bar */}
-      <div className="w-full bg-[#C6B29A] py-3.5 flex items-center justify-center cursor-pointer hover:bg-[#BBA389] transition-colors">
+      <Link
+        href="/contact#boutique"
+        className="w-full bg-[#C6B29A] py-3.5 flex items-center justify-center cursor-pointer hover:bg-[#BBA389] transition-colors block text-center"
+      >
         <span className="text-xs font-semibold uppercase tracking-widest text-[#3A3026]">
           BOOK A VISIT &rarr;
         </span>
-      </div>
+      </Link>
     </section>
   );
 }
