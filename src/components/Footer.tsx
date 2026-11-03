@@ -80,11 +80,11 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
 
           {/* Email */}
           <a
-            href="mailto:info@horologue.com"
+            href="mailto:info@horologe.com"
             className="flex items-center gap-2 hover:text-[#1F1914] transition-colors"
           >
             <Globe size={15} className="text-[#3E342B]" />
-            <span>info@horologue.com</span>
+            <span>info@horologe.com</span>
           </a>
         </div>
 
@@ -123,7 +123,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
             </a>
           </div>
           <a
-            href="mailto:info@horologue.com"
+            href="mailto:info@horologe.com"
             className="flex items-center justify-center gap-2.5 pt-1.5 pb-0.5 text-[15.8px] font-normal tracking-wide hover:opacity-80 transition-opacity"
           >
             <svg
@@ -132,7 +132,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
             >
               <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.987 7.987 0 0 1 5.08 16zm2.95-8H5.08a7.987 7.987 0 0 1 3.95-3.56c-.6 1.11-1.06 2.31-1.38 3.56zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-3.95 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z" />
             </svg>
-            <span>info@horologue.com</span>
+            <span>info@horologe.com</span>
           </a>
         </div>
       </div>
@@ -144,7 +144,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
       <div className={`hidden md:block max-w-[1440px] w-[94%] mx-auto px-6 lg:px-12 ${hideTopStrip ? "pt-5 lg:pt-6" : "pt-10"} pb-6`}>
         {/* Top Sub-Header Line */}
         <div className="flex items-center justify-between text-[13px] text-[#5E5245] mb-8 font-sans max-w-[92%] mx-auto">
-          <span className="tracking-wide">Horlogue Royal</span>
+          <span className="tracking-wide">Horologe Royale</span>
           <div className="border-t border-[#CDC3B5] flex-1 mx-4" />
           <span className="tracking-wide">A Higher Standard of Time</span>
         </div>
@@ -339,7 +339,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
 
         {/* Bottom Copyright Bar */}
         <div className="flex items-center justify-between text-[13px] text-[#5E5245] mt-8 pt-2 font-sans max-w-[92%] mx-auto">
-          <span className="tracking-wide">Horologue Royal 2026. All Rights Reserved</span>
+          <span className="tracking-wide">Horologe Royale 2026. All Rights Reserved</span>
           <div className="border-t border-[#CDC3B5] flex-1 mx-4" />
           <span className="tracking-wide">Professionally Crafted by Eaz Nexora</span>
         </div>
@@ -355,7 +355,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
             className="text-[19.8px] font-semibold text-[#5E5245] tracking-wide text-center"
             style={{ fontSize: '19.8px', fontWeight: 600 }}
           >
-            Horlogue Royal
+            Horologe Royale
           </span>
           <div className="border-t border-[#CDC3B5] w-full my-2.5" />
           <span
@@ -561,7 +561,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
         {/* Footer Notes */}
         <div className="flex flex-col items-center text-center mt-2 font-sans">
           <span className="text-[13px] text-[#5E5245] tracking-wide">
-            Horologue Royal 2026. All Rights Reserved
+            Horologe Royale 2026. All Rights Reserved
           </span>
           <div className="border-t border-[#CDC3B5] w-full my-2.5" />
           <span className="text-[13px] text-[#5E5245] tracking-wide pb-2">
