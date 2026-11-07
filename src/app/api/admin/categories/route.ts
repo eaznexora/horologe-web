@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Category } from '@/models/Category';
 
@@ -10,22 +10,27 @@ export async function GET(req: Request) {
     const isAdmin = searchParams.get('admin') === 'true' || searchParams.get('all') === 'true';
 
     const filter: any = isAdmin ? {} : { status: 'active' };
-    const categories = await Category.find(filter).sort({ rank: 1, createdAt: 1 }).lean();
+    const categories = await Category.find(filter).sort({ rank: 1 }).lean();
 
-    // Separate into parent and subcategories
     const parents = categories.filter((c: any) => !c.parentId);
     const structured = parents.map((parent: any) => ({
       ...parent,
-      subcategories: categories
-        .filter((sub: any) => String(sub.parentId) === String(parent._id))
-        .sort((a: any, b: any) => (a.rank || 0) - (b.rank || 0)),
+      subcategories: categories.filter(
+        (sub: any) => String(sub.parentId) === String(parent._id)
+      ),
     }));
 
     return NextResponse.json({ success: true, categories: structured, flat: categories });
   } catch (error: any) {
-    console.error('Error fetching categories:', error);
+    console.error('[API_CATEGORIES_GET_ERROR]:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch categories' },
+      {
+        success: false,
+        error: error.message || 'Unknown Server Error',
+        name: error.name,
+        code: error.code,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
       { status: 500 }
     );
   }

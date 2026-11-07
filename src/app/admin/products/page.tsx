@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import { formatINR } from "@/components/timepiece/DynamicTimepieceOverview";
 
@@ -400,10 +401,10 @@ export default function AdminProductsPage() {
                         />
                       </td>
 
-                      {/* Timepiece & Circular Thumbnail */}
+                      {/* Timepiece & Square Horology Frame Thumbnail */}
                       <td className="py-4 px-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-full bg-[#E5D7CA]/60 border border-white/80 overflow-hidden shrink-0 shadow-2xs relative">
+                          <div className="w-11 h-11 rounded-xl bg-[#F5EFE6] border border-[#E0D5C7] shadow-2xs relative overflow-hidden shrink-0">
                             <img
                               src={thumbnail}
                               alt={item.name}
@@ -472,6 +473,14 @@ export default function AdminProductsPage() {
                       {/* Actions */}
                       <td className="py-4 pl-4 pr-1 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/products/${item._id}`}
+                            className="bg-[#5C4529] hover:bg-[#47341D] text-[#FAF6F0] text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors shadow-2xs inline-flex items-center gap-1.5 cursor-pointer"
+                            title="Edit Timepiece Record"
+                          >
+                            <Pencil size={12} />
+                            <span>Edit</span>
+                          </Link>
                           <Link
                             href={`/timepiece/${item.slug}`}
                             target="_blank"

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
   RotateCcw,
@@ -14,11 +15,11 @@ import {
   ShieldCheck,
   FileText,
   Image as ImageIcon,
-  Check,
   Plus,
   Trash2,
   Globe,
   ExternalLink,
+  Tag,
 } from "lucide-react";
 import { formatINR } from "@/components/timepiece/DynamicTimepieceOverview";
 
@@ -60,7 +61,6 @@ interface KeySpecItem {
   value: string;
 }
 
-// Exactly 4 image slots specification
 const INITIAL_IMAGE_SLOTS: ImageSlot[] = [
   { id: 1, label: "Hero Showcase (Main View)", file: null, previewUrl: "", fileName: "" },
   { id: 2, label: "Gallery Slot 2 (Angle 3/4)", file: null, previewUrl: "", fileName: "" },
@@ -68,84 +68,67 @@ const INITIAL_IMAGE_SLOTS: ImageSlot[] = [
   { id: 4, label: "Gallery Slot 4 (Dial Detail)", file: null, previewUrl: "", fileName: "" },
 ];
 
-const INITIAL_PILLARS: PillarItem[] = [
-  {
-    title: "TIMEPIECES SOURCED",
-    description: "We prioritise transparency, provenance, and complete confidence with every acquisition.",
-  },
-  {
-    title: "AUTHENTICITY ASSURED",
-    description: "Rigorous multi-point horological certification conducted by certified master watchmakers.",
-  },
-  {
-    title: "ALL OVER INDIA DELIVERY",
-    description: "Fully insured transit and discreet private courier delivery straight to your doorstep.",
-  },
-];
-
-const INITIAL_KEY_SPECS: KeySpecItem[] = [
-  { label: "CASE SIZE", value: "40 mm" },
-  { label: "CASE MATERIAL", value: "Stainless Steel" },
-  { label: "MOVEMENT", value: "Automatic" },
-  { label: "POWER RESERVE", value: "72 Hours" },
-  { label: "WATER RESISTANCE", value: "100m" },
-];
-
 export default function AddProductPage() {
-  // Live API Categories
+  const router = useRouter();
+
+  // Dropdown Data
   const [categories, setCategories] = useState<CategoryParent[]>([]);
   const [watchCategories, setWatchCategories] = useState<WatchCategoryItem[]>([]);
   const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(true);
 
-  // Form State
+  // Core Identity State (All initialized to empty strings / empty arrays)
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [minorSpecs, setMinorSpecs] = useState<string[]>([
-    "Chronograph",
-    "Automatic",
-    "Oystersteel",
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [reference, setReference] = useState("");
+  const [sku, setSku] = useState("");
+  const [price, setPrice] = useState("");
+  const [originalPrice, setOriginalPrice] = useState("");
+  const [minorSpecs, setMinorSpecs] = useState<string[]>([]);
+
+  // Editorial & Punchline
+  const [tagline, setTagline] = useState("");
+  const [heritageHeadline, setHeritageHeadline] = useState("");
+  const [heritageStory, setHeritageStory] = useState("");
+
+  // SEO Suite
+  const [focusKeywords, setFocusKeywords] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [canonicalUrl, setCanonicalUrl] = useState("");
+
+  // Pillars (3 empty items)
+  const [pillars, setPillars] = useState<PillarItem[]>([
+    { title: "", description: "" },
+    { title: "", description: "" },
+    { title: "", description: "" },
   ]);
 
-  // Category Triad
+  // Key Specifications (5 labels with empty values)
+  const [keySpecs, setKeySpecs] = useState<KeySpecItem[]>([
+    { label: "CASE SIZE", value: "" },
+    { label: "CASE MATERIAL", value: "" },
+    { label: "MOVEMENT", value: "" },
+    { label: "POWER RESERVE", value: "" },
+    { label: "WATER RESISTANCE", value: "" },
+  ]);
+
+  // 4 Image URLs
+  const [images, setImages] = useState<string[]>(["", "", "", ""]);
+  const [imageSlots, setImageSlots] = useState<ImageSlot[]>(INITIAL_IMAGE_SLOTS);
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Category Triad & Status
   const [parentCategory, setParentCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [watchCategory, setWatchCategory] = useState("");
   const [conditionBadge, setConditionBadge] = useState("Preowned");
   const [gradeBadge, setGradeBadge] = useState("Excellent Condition");
   const [scopeBadge, setScopeBadge] = useState("Full Set");
+  const [status, setStatus] = useState<"active" | "draft" | "sold">("active");
 
-  // Editorial & Punchline
-  const [tagline, setTagline] = useState(
-    "Precision engineered for those who value every second."
-  );
-  const [heritageHeadline, setHeritageHeadline] = useState(
-    "A CHRONOGRAPHY WITH A LEGACY."
-  );
-  const [heritageStory, setHeritageStory] = useState(
-    "We prioritise transparency, provenance, and complete confidence with every acquisition. Each reference undergoes comprehensive mechanical inspection, timegrapher calibration, and vault certification."
-  );
-
-  // Dual Pricing
-  const [price, setPrice] = useState("2000000");
-  const [originalPrice, setOriginalPrice] = useState("2500000");
-
-  // Dynamic Pillars (Up to 3)
-  const [pillars, setPillars] = useState<PillarItem[]>(INITIAL_PILLARS);
-
-  // Dynamic Key-Value Specs Grid
-  const [keySpecs, setKeySpecs] = useState<KeySpecItem[]>(INITIAL_KEY_SPECS);
-
-  // SEO Suite
-  const [metaTitle, setMetaTitle] = useState("");
-  const [metaDescription, setMetaDescription] = useState("");
-  const [canonicalUrl, setCanonicalUrl] = useState("");
-  const [focusKeywords, setFocusKeywords] = useState("rolex, daytona, luxury watch, chronograph");
-
-  // Exactly 4 image slots
-  const [imageSlots, setImageSlots] = useState<ImageSlot[]>(INITIAL_IMAGE_SLOTS);
-  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Submission States
+  // UI Feedback
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [createdProductSlug, setCreatedProductSlug] = useState<string | null>(null);
@@ -157,7 +140,7 @@ export default function AddProductPage() {
     }, 3500);
   };
 
-  // Fetch Live Categories from MongoDB
+  // Load Dropdowns on Mount
   useEffect(() => {
     let isMounted = true;
     async function loadDropdowns() {
@@ -170,25 +153,15 @@ export default function AddProductPage() {
 
         if (catRes.ok) {
           const catData = await catRes.json();
-          if (catData.success && Array.isArray(catData.categories)) {
-            if (isMounted) {
-              setCategories(catData.categories);
-              if (catData.categories.length > 0) {
-                setParentCategory(catData.categories[0]._id);
-              }
-            }
+          if (catData.success && Array.isArray(catData.categories) && isMounted) {
+            setCategories(catData.categories);
           }
         }
 
         if (watchCatRes.ok) {
           const watchData = await watchCatRes.json();
-          if (watchData.success && Array.isArray(watchData.categories)) {
-            if (isMounted) {
-              setWatchCategories(watchData.categories);
-              if (watchData.categories.length > 0) {
-                setWatchCategory(watchData.categories[0]._id);
-              }
-            }
+          if (watchData.success && Array.isArray(watchData.categories) && isMounted) {
+            setWatchCategories(watchData.categories);
           }
         }
       } catch (err) {
@@ -203,7 +176,6 @@ export default function AddProductPage() {
     };
   }, []);
 
-  // Compute available subcategories
   const selectedParentObj = categories.find((c) => c._id === parentCategory);
   const availableSubcategories = selectedParentObj?.subcategories || [];
 
@@ -217,7 +189,7 @@ export default function AddProductPage() {
       ? Math.round((savings / originalPriceNum) * 100)
       : 0;
 
-  // Auto-generate slug when name changes (if user hasn't manually edited slug)
+  // Auto-slug generator on name input
   const handleNameChange = (val: string) => {
     setName(val);
     const autoSlug = val
@@ -232,7 +204,7 @@ export default function AddProductPage() {
     }
   };
 
-  // Image Upload Handler
+  // Image Upload Handlers
   const handleFileChange = (slotIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -243,15 +215,15 @@ export default function AddProductPage() {
       setImageSlots((prev) =>
         prev.map((slot, idx) =>
           idx === slotIndex
-            ? {
-                ...slot,
-                file,
-                previewUrl: result,
-                fileName: file.name,
-              }
+            ? { ...slot, file, previewUrl: result, fileName: file.name }
             : slot
         )
       );
+      setImages((prev) => {
+        const next = [...prev];
+        next[slotIndex] = result;
+        return next;
+      });
       showToast(`Loaded ${INITIAL_IMAGE_SLOTS[slotIndex].label}`);
     };
     reader.readAsDataURL(file);
@@ -262,15 +234,15 @@ export default function AddProductPage() {
     setImageSlots((prev) =>
       prev.map((slot, idx) =>
         idx === slotIndex
-          ? {
-              ...slot,
-              file: null,
-              previewUrl: "",
-              fileName: "",
-            }
+          ? { ...slot, file: null, previewUrl: "", fileName: "" }
           : slot
       )
     );
+    setImages((prev) => {
+      const next = [...prev];
+      next[slotIndex] = "";
+      return next;
+    });
     if (fileInputRefs.current[slotIndex]) {
       fileInputRefs.current[slotIndex]!.value = "";
     }
@@ -285,12 +257,31 @@ export default function AddProductPage() {
   const handleMinorSpecChange = (index: number, val: string) => {
     setMinorSpecs((prev) => {
       const next = [...prev];
+      while (next.length <= index) {
+        next.push("");
+      }
       next[index] = val;
       return next;
     });
   };
 
-  // Pillar Handlers (Up to 3)
+  // Helper Handler: Appends empty object
+  const handleAddPillar = () => {
+    if (pillars.length >= 3) {
+      showToast("Maximum 3 Pillar Highlights allowed");
+      return;
+    }
+    setPillars((prev) => [...prev, { title: "", description: "" }]);
+  };
+
+  const handleRemovePillar = (index: number) => {
+    if (pillars.length <= 1) {
+      showToast("At least 1 Pillar must remain");
+      return;
+    }
+    setPillars((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
   const handlePillarChange = (
     index: number,
     field: "title" | "description",
@@ -303,26 +294,15 @@ export default function AddProductPage() {
     });
   };
 
-  const handleAddPillar = () => {
-    if (pillars.length >= 3) {
-      showToast("Maximum 3 Pillar Highlights allowed");
-      return;
-    }
-    setPillars((prev) => [
-      ...prev,
-      { title: "EXQUISITE CRAFTSMANSHIP", description: "Unrivaled artisanal finishing." },
-    ]);
+  // Helper Handler: Appends empty object
+  const handleAddKeySpec = () => {
+    setKeySpecs((prev) => [...prev, { label: "", value: "" }]);
   };
 
-  const handleRemovePillar = (index: number) => {
-    if (pillars.length <= 1) {
-      showToast("At least 1 Pillar must remain");
-      return;
-    }
-    setPillars((prev) => prev.filter((_, idx) => idx !== index));
+  const handleRemoveKeySpec = (index: number) => {
+    setKeySpecs((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  // Key Specs Handlers
   const handleKeySpecChange = (
     index: number,
     field: "label" | "value",
@@ -335,45 +315,51 @@ export default function AddProductPage() {
     });
   };
 
-  const handleAddKeySpec = () => {
-    setKeySpecs((prev) => [
-      ...prev,
-      { label: "DIAL COLOR", value: "White Lacquer" },
-    ]);
-  };
-
-  const handleRemoveKeySpec = (index: number) => {
-    setKeySpecs((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  // Reset Form
+  // Reset Handler: Clears all state back to empty strings/arrays without restoring mock data
   const handleReset = () => {
     setName("");
     setSlug("");
-    setMinorSpecs(["Chronograph", "Automatic", "Oystersteel"]);
-    setPrice("2000000");
-    setOriginalPrice("2500000");
-    setTagline("Precision engineered for those who value every second.");
-    setHeritageHeadline("A CHRONOGRAPHY WITH A LEGACY.");
-    setHeritageStory(
-      "We prioritise transparency, provenance, and complete confidence with every acquisition. Each reference undergoes comprehensive mechanical inspection, timegrapher calibration, and vault certification."
-    );
-    setConditionBadge("Preowned");
-    setGradeBadge("Excellent Condition");
-    setScopeBadge("Full Set");
-    setPillars(INITIAL_PILLARS);
-    setKeySpecs(INITIAL_KEY_SPECS);
+    setBrand("");
+    setModel("");
+    setReference("");
+    setSku("");
+    setPrice("");
+    setOriginalPrice("");
+    setMinorSpecs([]);
+    setTagline("");
+    setHeritageHeadline("");
+    setHeritageStory("");
+    setFocusKeywords("");
     setMetaTitle("");
     setMetaDescription("");
     setCanonicalUrl("");
-    setFocusKeywords("rolex, daytona, luxury watch");
+    setPillars([
+      { title: "", description: "" },
+      { title: "", description: "" },
+      { title: "", description: "" },
+    ]);
+    setKeySpecs([
+      { label: "CASE SIZE", value: "" },
+      { label: "CASE MATERIAL", value: "" },
+      { label: "MOVEMENT", value: "" },
+      { label: "POWER RESERVE", value: "" },
+      { label: "WATER RESISTANCE", value: "" },
+    ]);
+    setImages(["", "", "", ""]);
     setImageSlots(INITIAL_IMAGE_SLOTS);
+    setParentCategory("");
+    setSubCategory("");
+    setWatchCategory("");
+    setConditionBadge("Preowned");
+    setGradeBadge("Excellent Condition");
+    setScopeBadge("Full Set");
+    setStatus("active");
     setCreatedProductSlug(null);
-    showToast("Intake fields reset to default values");
+    showToast("Intake form reset to blank fields");
   };
 
   // Submit Handler
-  const handleSubmit = async (actionType: "draft" | "publish") => {
+  const handleSubmit = async (actionType: "active" | "draft") => {
     if (!name.trim()) {
       showToast("Product Title / Name is required");
       return;
@@ -386,12 +372,17 @@ export default function AddProductPage() {
     try {
       setIsSubmitting(true);
 
-      // Extract image URLs or previews
-      const imagesPayload = imageSlots.map((slot) => slot.previewUrl || "/logo.png");
+      const imagesPayload = imageSlots.map(
+        (slot, idx) => slot.previewUrl || images[idx] || "/logo.png"
+      );
 
       const payload = {
         name: name.trim(),
         slug: slug.trim() || undefined,
+        brand: brand.trim() || undefined,
+        model: model.trim() || undefined,
+        reference: reference.trim() || undefined,
+        sku: sku.trim() || undefined,
         images: imagesPayload,
         minorSpecs: minorSpecs.filter(Boolean).slice(0, 3),
         category: parentCategory || undefined,
@@ -405,15 +396,15 @@ export default function AddProductPage() {
         originalPrice: originalPrice ? Number(originalPrice) : undefined,
         heritageHeadline,
         heritageStory,
-        pillars,
-        keySpecs,
+        pillars: pillars.filter((p) => p.title || p.description),
+        keySpecs: keySpecs.filter((k) => k.label && k.value),
         seo: {
           metaTitle: metaTitle || `${name} | Horologe Royale`,
           metaDescription: metaDescription || tagline,
           canonicalUrl: canonicalUrl || `/timepiece/${slug}`,
           focusKeywords,
         },
-        status: actionType === "publish" ? "active" : "draft",
+        status: actionType,
       };
 
       const res = await fetch("/api/admin/products", {
@@ -427,7 +418,7 @@ export default function AddProductPage() {
       if (res.ok && data.success) {
         setCreatedProductSlug(data.slug);
         showToast(
-          actionType === "publish"
+          actionType === "active"
             ? `Successfully registered "${name}" into Vault!`
             : `Saved draft for "${name}"`
         );
@@ -453,50 +444,78 @@ export default function AddProductPage() {
       )}
 
       {/* 1. Header Bar */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center">
           <Link
             href="/admin/products"
-            className="w-9 h-9 bg-white/45 backdrop-blur-md border border-white/60 rounded-xl flex items-center justify-center text-[#2C241E] hover:bg-white/70 shadow-sm transition-all cursor-pointer"
+            className="w-9 h-9 bg-white/45 backdrop-blur-md border border-white/60 rounded-xl flex items-center justify-center text-[#2C241E] hover:bg-white/70 shadow-sm transition-all cursor-pointer shrink-0"
             aria-label="Back to Product List"
           >
             <ChevronLeft size={18} />
           </Link>
-          <div>
-            <span className="text-[10px] tracking-[0.25em] text-[#8C7A6B] uppercase font-semibold block ml-3 mt-0.5">
+          <div className="ml-3">
+            <span className="text-[10px] tracking-[0.25em] text-[#8C7A6B] uppercase font-semibold block">
               VAULT INTAKE ENGINE
             </span>
-            <h1 className="font-serif text-[24px] lg:text-[28px] font-medium text-[#2C241E] ml-3 tracking-tight leading-tight">
+            <h1 className="font-serif text-[22px] lg:text-[26px] font-medium text-[#2C241E] tracking-tight leading-tight">
               Add a New Timepiece
             </h1>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleReset}
-          className="text-xs text-[#8C7A6B] hover:text-[#5C4529] bg-white/40 hover:bg-white/70 border border-white/60 px-3.5 py-1.5 rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-          title="Reset intake form"
-        >
-          <RotateCcw size={13} />
-          <span>Reset Form</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Status Badge Toggle */}
+          <div className="bg-white/50 backdrop-blur-md border border-white/70 rounded-xl p-1 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setStatus("active")}
+              className={`text-[11px] px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                status === "active"
+                  ? "bg-[#5C4529] text-white shadow-2xs"
+                  : "text-[#7A6C5E] hover:text-[#2C241E]"
+              }`}
+            >
+              In Stock
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus("draft")}
+              className={`text-[11px] px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                status === "draft"
+                  ? "bg-[#8C7A6B] text-white shadow-2xs"
+                  : "text-[#7A6C5E] hover:text-[#2C241E]"
+              }`}
+            >
+              Under Review
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleReset}
+            className="text-xs text-[#8C7A6B] hover:text-[#5C4529] bg-white/40 hover:bg-white/70 border border-white/60 px-3.5 py-2 rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            title="Reset intake form"
+          >
+            <RotateCcw size={13} />
+            <span>Reset</span>
+          </button>
+        </div>
       </div>
 
-      {/* Success Banner when product created */}
+      {/* Success Notification Banner */}
       {createdProductSlug && (
-        <div className="mb-6 p-4 rounded-2xl bg-[#EFE7DE] border border-[#D4C6B3] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-in fade-in">
+        <div className="mb-6 p-4 bg-white/60 border border-[#5C4529]/30 rounded-2xl flex items-center justify-between gap-4 shadow-sm animate-in fade-in">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#5C4529] text-white flex items-center justify-center shrink-0">
-              <Check size={16} />
+            <div className="w-8 h-8 rounded-full bg-[#5C4529]/15 text-[#5C4529] flex items-center justify-center shrink-0">
+              <CheckCircle2 size={16} />
             </div>
             <div>
               <p className="text-xs font-semibold text-[#2C241E]">
-                Timepiece is live in the vault!
+                Timepiece Successfully Registered
               </p>
               <p className="text-[11px] text-[#7A6C5E]">
-                Accessible via slug:{" "}
-                <span className="font-mono text-[#5C4529] font-medium">
+                Live Reference:{" "}
+                <span className="font-mono text-[#5C4529]">
                   /timepiece/{createdProductSlug}
                 </span>
               </p>
@@ -515,11 +534,9 @@ export default function AddProductPage() {
 
       {/* 2. Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] gap-6 items-start">
-        {/* ========================================================= */}
-        {/* LEFT COLUMN: CORE IDENTITY, TRIAD, PRICING, NARRATIVE, SEO */}
-        {/* ========================================================= */}
+        {/* LEFT COLUMN */}
         <div className="space-y-6">
-          {/* SECTION 1: CORE PRODUCT IDENTITY & MINOR SPECS */}
+          {/* SECTION 1: CORE PRODUCT IDENTITY & TECHNICAL CATALOGING */}
           <div className="bg-white/45 backdrop-blur-xl border border-white/70 rounded-2xl p-6 shadow-[0_12px_36px_rgba(80,60,40,0.05)]">
             <div className="flex items-center gap-2 pb-3 mb-4 border-b border-[#D4C6B3]/50">
               <Sparkles size={16} className="text-[#5C4529]" />
@@ -541,9 +558,6 @@ export default function AddProductPage() {
                   onChange={(e) => handleNameChange(e.target.value)}
                   className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2.5 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs transition-colors"
                 />
-                <p className="text-[11px] text-[#7A6C5E] mt-1">
-                  Rendered in high-contrast editorial uppercase serif on the storefront showcase.
-                </p>
               </div>
 
               {/* Slug */}
@@ -565,7 +579,59 @@ export default function AddProductPage() {
                 </div>
               </div>
 
-              {/* Minor Specifications (Max 3 Items) */}
+              {/* Horology Reference & Catalog Meta Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                <div>
+                  <label className="text-[11px] font-semibold text-[#2C241E] mb-1 block">
+                    Brand / Maison
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Rolex"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-[#2C241E] mb-1 block">
+                    Model Line
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Cosmograph Daytona"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-[#2C241E] mb-1 block">
+                    Reference #
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 116500LN"
+                    value={reference}
+                    onChange={(e) => setReference(e.target.value)}
+                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-[#2C241E] mb-1 block">
+                    SKU / Serial
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. HR-DAYTONA-01"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Minor Specifications (Max 3 Tags) */}
               <div>
                 <label className="text-xs font-semibold text-[#2C241E] mb-1.5 block">
                   Minor Specifications (Max 3 Tags)
@@ -578,7 +644,13 @@ export default function AddProductPage() {
                       </span>
                       <input
                         type="text"
-                        placeholder={idx === 0 ? "Chronograph" : idx === 1 ? "Automatic" : "Oystersteel"}
+                        placeholder={
+                          idx === 0
+                            ? "e.g. Chronograph"
+                            : idx === 1
+                            ? "e.g. Automatic"
+                            : "e.g. Oystersteel"
+                        }
                         value={minorSpecs[idx] || ""}
                         onChange={(e) => handleMinorSpecChange(idx, e.target.value)}
                         className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3.5 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs transition-colors"
@@ -596,7 +668,7 @@ export default function AddProductPage() {
             </div>
           </div>
 
-          {/* SECTION 2: THE CATEGORY TRIAD (STATUS & PILLS) */}
+          {/* SECTION 2: CATEGORY TRIAD & STATUS BADGES */}
           <div className="bg-white/45 backdrop-blur-xl border border-white/70 rounded-2xl p-6 shadow-[0_12px_36px_rgba(80,60,40,0.05)]">
             <div className="flex items-center gap-2 pb-3 mb-4 border-b border-[#D4C6B3]/50">
               <ShieldCheck size={16} className="text-[#5C4529]" />
@@ -606,7 +678,6 @@ export default function AddProductPage() {
             </div>
 
             <div className="space-y-4">
-              {/* Category Dropdowns (Parent, Subcategory, WatchCategory) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {/* Storefront Parent Category */}
                 <div>
@@ -694,54 +765,45 @@ export default function AddProductPage() {
                 </div>
               </div>
 
-              {/* Triad Badges: Condition, Grade, Scope */}
+              {/* Triad Badges */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                 <div>
                   <label className="text-xs font-semibold text-[#2C241E] mb-1.5 block">
-                    Pill 1: Category / Condition
+                    Pill 1: Condition / Category
                   </label>
                   <input
                     type="text"
                     placeholder="e.g. Preowned"
                     value={conditionBadge}
                     onChange={(e) => setConditionBadge(e.target.value)}
-                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3.5 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs transition-colors"
+                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3.5 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs"
                   />
-                  <span className="text-[10px] text-[#7A6C5E] mt-1 block">
-                    Rendered in solid bronze (`#6D5333`)
-                  </span>
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-[#2C241E] mb-1.5 block">
-                    Pill 2: Condition Grade Badge
+                    Pill 2: Grade Badge
                   </label>
                   <input
                     type="text"
                     placeholder="e.g. Excellent Condition"
                     value={gradeBadge}
                     onChange={(e) => setGradeBadge(e.target.value)}
-                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3.5 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs transition-colors"
+                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3.5 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs"
                   />
-                  <span className="text-[10px] text-[#7A6C5E] mt-1 block">
-                    Rendered in soft cream (`#D4C5B3`)
-                  </span>
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-[#2C241E] mb-1.5 block">
-                    Pill 3: Scope of Delivery Badge
+                    Pill 3: Scope Badge
                   </label>
                   <input
                     type="text"
                     placeholder="e.g. Full Set"
                     value={scopeBadge}
                     onChange={(e) => setScopeBadge(e.target.value)}
-                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3.5 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs transition-colors"
+                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3.5 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs"
                   />
-                  <span className="text-[10px] text-[#7A6C5E] mt-1 block">
-                    Rendered in soft cream (`#D4C5B3`)
-                  </span>
                 </div>
               </div>
             </div>
@@ -757,7 +819,6 @@ export default function AddProductPage() {
             </div>
 
             <div className="space-y-4">
-              {/* Tagline */}
               <div>
                 <label className="text-xs font-semibold text-[#2C241E] mb-1.5 block">
                   The One-Liner Punchline (Tagline)
@@ -767,14 +828,10 @@ export default function AddProductPage() {
                   placeholder="e.g. Precision engineered for those who value every second."
                   value={tagline}
                   onChange={(e) => setTagline(e.target.value)}
-                  className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2.5 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs transition-colors"
+                  className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2.5 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs"
                 />
-                <p className="text-[11px] text-[#7A6C5E] mt-1">
-                  Placed directly above the pricing row in subtle editorial styling.
-                </p>
               </div>
 
-              {/* Pricing Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 <div>
                   <label className="text-xs font-semibold text-[#2C241E] mb-1.5 block">
@@ -836,7 +893,7 @@ export default function AddProductPage() {
                   placeholder="e.g. A CHRONOGRAPHY WITH A LEGACY."
                   value={heritageHeadline}
                   onChange={(e) => setHeritageHeadline(e.target.value)}
-                  className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2.5 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs font-serif uppercase transition-colors"
+                  className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2.5 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs font-serif uppercase"
                 />
               </div>
 
@@ -849,11 +906,11 @@ export default function AddProductPage() {
                   placeholder="We prioritise transparency, provenance, and complete confidence with every acquisition..."
                   value={heritageStory}
                   onChange={(e) => setHeritageStory(e.target.value)}
-                  className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-3 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 min-h-[90px] resize-none shadow-xs transition-colors leading-relaxed"
+                  className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-3 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 min-h-[90px] resize-none shadow-xs leading-relaxed"
                 />
               </div>
 
-              {/* Pillars (Up to 3, Auto-Centered) */}
+              {/* Pillars (Up to 3) */}
               <div className="pt-2 border-t border-[#D4C6B3]/40">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-[#2C241E]">
@@ -915,7 +972,7 @@ export default function AddProductPage() {
             </div>
           </div>
 
-          {/* SECTION 5: KEY SPECIFICATIONS MATRIX (DYNAMIC GRID) */}
+          {/* SECTION 5: KEY SPECIFICATIONS MATRIX */}
           <div className="bg-white/45 backdrop-blur-xl border border-white/70 rounded-2xl p-6 shadow-[0_12px_36px_rgba(80,60,40,0.05)]">
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#D4C6B3]/50">
               <div className="flex items-center gap-2">
@@ -933,10 +990,6 @@ export default function AddProductPage() {
                 <span>Add Specification</span>
               </button>
             </div>
-
-            <p className="text-[11px] text-[#7A6C5E] mb-3">
-              Rendered on the storefront in a structured 5-column responsive grid (`grid-cols-2 lg:grid-cols-5`). Additional specifications wrap cleanly into subsequent rows.
-            </p>
 
             <div className="space-y-2.5">
               {keySpecs.map((spec, idx) => (
@@ -975,7 +1028,7 @@ export default function AddProductPage() {
             </div>
           </div>
 
-          {/* SECTION 6: SEO CONFIGURATION SUITE */}
+          {/* SECTION 6: SEO SUITE */}
           <div className="bg-white/45 backdrop-blur-xl border border-white/70 rounded-2xl p-6 shadow-[0_12px_36px_rgba(80,60,40,0.05)]">
             <div className="flex items-center gap-2 pb-3 mb-4 border-b border-[#D4C6B3]/50">
               <Globe size={16} className="text-[#5C4529]" />
@@ -991,10 +1044,10 @@ export default function AddProductPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Rolex Cosmograph Daytona | Horologe Royale"
+                  placeholder="e.g. Rolex Cosmograph Daytona | Horologe Royale"
                   value={metaTitle}
                   onChange={(e) => setMetaTitle(e.target.value)}
-                  className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2.5 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs transition-colors"
+                  className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2.5 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs"
                 />
               </div>
 
@@ -1007,7 +1060,7 @@ export default function AddProductPage() {
                   placeholder="Search engine summary preview..."
                   value={metaDescription}
                   onChange={(e) => setMetaDescription(e.target.value)}
-                  className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 resize-none shadow-xs transition-colors"
+                  className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 resize-none shadow-xs"
                 />
               </div>
 
@@ -1031,7 +1084,7 @@ export default function AddProductPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder="rolex, daytona, chronograph"
+                    placeholder="e.g. rolex, daytona, chronograph"
                     value={focusKeywords}
                     onChange={(e) => setFocusKeywords(e.target.value)}
                     className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2 text-xs text-[#2C241E] outline-none focus:border-[#5C4529]/60 shadow-xs"
@@ -1039,7 +1092,7 @@ export default function AddProductPage() {
                 </div>
               </div>
 
-              {/* Live Google Search Preview */}
+              {/* Google Search Preview */}
               <div className="p-3.5 bg-white/60 border border-[#D4C6B3]/50 rounded-xl">
                 <span className="text-[10px] uppercase font-mono tracking-wider text-[#8C7A6B] block mb-1">
                   GOOGLE SEARCH SNIPPET PREVIEW
@@ -1053,16 +1106,14 @@ export default function AddProductPage() {
                 <p className="text-xs text-[#545454] line-clamp-2 mt-0.5 leading-snug">
                   {metaDescription ||
                     tagline ||
-                    "Precision engineered for those who value every second. Certified luxury horology at Horologe Royale."}
+                    "Search engine summary preview for this timepiece."}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ========================================================= */}
-        {/* RIGHT COLUMN: EXACTLY 4 IMAGE SLOTS & LIVE CARD PREVIEW   */}
-        {/* ========================================================= */}
+        {/* RIGHT COLUMN: 4 IMAGES & LIVE CARD PREVIEW */}
         <div className="space-y-6 lg:sticky lg:top-6">
           <div className="bg-white/45 backdrop-blur-xl border border-white/70 rounded-2xl p-6 shadow-[0_12px_36px_rgba(80,60,40,0.05)]">
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#D4C6B3]/50">
@@ -1078,10 +1129,9 @@ export default function AddProductPage() {
             </div>
 
             <p className="text-[11px] text-[#7A6C5E] mb-4 leading-snug">
-              Slot 1 serves as the primary hero image. Slots 2–4 populate gallery thumbnails. If any slot is missing or empty, it defaults automatically to `/logo.png`.
+              Slot 1 serves as the primary hero image. Slots 2–4 populate gallery thumbnails. Defaults to `/logo.png` if blank.
             </p>
 
-            {/* Hidden native file inputs */}
             {imageSlots.map((slot, idx) => (
               <input
                 key={slot.id}
@@ -1095,7 +1145,7 @@ export default function AddProductPage() {
               />
             ))}
 
-            {/* Slot 1: Primary Hero Dropzone */}
+            {/* Slot 1: Primary Hero */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-semibold text-[#5C4529] tracking-wide uppercase flex items-center gap-1.5">
@@ -1139,14 +1189,14 @@ export default function AddProductPage() {
                       Upload Slot 1: Hero Main
                     </span>
                     <span className="text-[10px] text-[#8C7A6B] mt-0.5">
-                      PNG, JPG, WEBP (Fallback: /logo.png)
+                      PNG, JPG, WEBP
                     </span>
                   </>
                 )}
               </div>
             </div>
 
-            {/* Slots 2, 3, 4 Grid (Gallery Thumbnails) */}
+            {/* Slots 2, 3, 4 Grid */}
             <div className="grid grid-cols-3 gap-2.5">
               {imageSlots.slice(1).map((slot, index) => {
                 const actualIndex = index + 1;
@@ -1229,7 +1279,6 @@ export default function AddProductPage() {
 
       {/* 3. Sticky Bottom Bronze Action Bar */}
       <div className="fixed bottom-0 right-0 left-0 md:left-[260px] bg-white/80 backdrop-blur-xl border-t border-white/70 py-4 px-6 lg:px-10 flex flex-col sm:flex-row items-center justify-between gap-3 z-30 shadow-[0_-4px_24px_rgba(44,36,30,0.08)]">
-        {/* Dynamic summary indicator */}
         <div className="flex items-center gap-2 overflow-hidden w-full sm:w-auto">
           <span className="w-2.5 h-2.5 rounded-full bg-[#5C4529] shrink-0" />
           <span className="text-xs font-medium text-[#2C241E] truncate">
@@ -1244,7 +1293,6 @@ export default function AddProductPage() {
           )}
         </div>
 
-        {/* Action Buttons */}
         <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
           <button
             type="button"
@@ -1265,7 +1313,7 @@ export default function AddProductPage() {
           <button
             type="button"
             disabled={isSubmitting}
-            onClick={() => handleSubmit("publish")}
+            onClick={() => handleSubmit("active")}
             className="bg-[#5C4529] hover:bg-[#47341D] text-white text-xs font-semibold px-5.5 py-2.5 rounded-xl shadow-md transition-all cursor-pointer whitespace-nowrap disabled:opacity-50"
           >
             {isSubmitting ? "Registering..." : "Publish to Vault"}

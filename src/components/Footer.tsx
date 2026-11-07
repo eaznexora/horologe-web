@@ -159,6 +159,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
                 alt="Horologe Royale by Watch Care"
                 width={265}
                 height={180}
+                style={{ height: "auto" }}
                 className="w-[250px] lg:w-[265px] h-auto object-contain"
                 priority
               />
@@ -374,6 +375,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
               alt="Horologe Royale by Watch Care"
               width={460}
               height={310}
+              style={{ height: "auto" }}
               className="w-[420px] sm:w-[460px] max-w-full w-full h-auto object-contain mx-auto"
               priority
             />

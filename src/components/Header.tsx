@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu, X, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,6 +9,30 @@ import MobileNavDrawer from "./MobileNavDrawer";
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (isMounted) {
+          setIsAuthenticated(res.ok);
+        }
+      } catch {
+        if (isMounted) {
+          setIsAuthenticated(false);
+        }
+      }
+    }
+    checkAuth();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const accountHref = isAuthenticated ? "/account" : "/login";
+  const accountLabel = isAuthenticated ? "My Account" : "Sign In";
 
   return (
     <>
@@ -46,12 +70,12 @@ export default function Header() {
             />
           </div>
 
-          <Link href="/account">
+          <Link href={accountHref}>
             <button 
               type="button"
               className="bg-[#6D5333] hover:bg-[#574227] text-[#FAF6F0] px-6 py-2.5 text-xs lg:text-[13px] font-medium tracking-[0.12em] transition-colors duration-300 shadow-sm cursor-pointer whitespace-nowrap"
             >
-              My Account
+              {accountLabel}
             </button>
           </Link>
         </div>
@@ -59,8 +83,8 @@ export default function Header() {
         {/* Mobile Header: Preserved appearance with Account icon and tactile Menu button */}
         <div className="md:hidden flex items-center gap-3">
           <Link
-            href="/account"
-            aria-label="Account"
+            href={accountHref}
+            aria-label={accountLabel}
             className="text-[#2C241E] p-1 active:scale-90 transition-transform duration-150 cursor-pointer select-none"
           >
             <User size={24} />

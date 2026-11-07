@@ -103,6 +103,25 @@ export default function MobileNavDrawer({
 
   const [activeParentSlug, setActiveParentSlug] = useState<string | null>("pre-owned");
   const [isDismissing, setIsDismissing] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (isMounted) setIsAuthenticated(res.ok);
+      } catch {
+        if (isMounted) setIsAuthenticated(false);
+      }
+    }
+    if (isOpen) {
+      checkAuth();
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
 
   // Sync categories if passed via props
   useEffect(() => {
@@ -228,8 +247,8 @@ export default function MobileNavDrawer({
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => handleNavigate("/account")}
-                aria-label="Account"
+                onClick={() => handleNavigate(isAuthenticated ? "/account" : "/login")}
+                aria-label={isAuthenticated ? "My Account" : "Sign In"}
                 className="text-[#2C241E] active:scale-90 transition-transform duration-150 cursor-pointer select-none p-1"
               >
                 <User size={24} />
@@ -332,6 +351,14 @@ export default function MobileNavDrawer({
 
             {/* Core Maison Links */}
             <div className="border-t border-[#EBDCCB] mt-5 pt-4 px-6 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => handleNavigate(isAuthenticated ? "/account" : "/login")}
+                className="text-[13px] tracking-[0.2em] uppercase font-medium text-[#2C241E] hover:text-[#9D7E50] active:scale-[0.99] transition-all text-left block cursor-pointer"
+              >
+                {isAuthenticated ? "MY ACCOUNT" : "SIGN IN / JOIN"}
+              </button>
+
               <button
                 type="button"
                 onClick={() => handleNavigate("#about")}

@@ -35,6 +35,50 @@ function AccountPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Authentication gate state
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Verify collector session
+  useEffect(() => {
+    let isMounted = true;
+
+    // Safety timeout: Never hang on spinner for more than 3.5 seconds
+    const safetyTimer = setTimeout(() => {
+      if (isMounted && isLoading) {
+        router.replace("/login?redirect=/account");
+      }
+    }, 3500);
+
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (!res.ok) {
+          router.replace("/login?redirect=/account");
+          return;
+        }
+        const data = await res.json();
+        if (data.success && data.user) {
+          if (isMounted) {
+            setUser(data.user);
+            setIsLoading(false);
+          }
+        } else {
+          router.replace("/login?redirect=/account");
+        }
+      } catch (err) {
+        console.error("Auth verification error:", err);
+        router.replace("/login?redirect=/account");
+      }
+    }
+
+    checkAuth();
+    return () => {
+      isMounted = false;
+      clearTimeout(safetyTimer);
+    };
+  }, [router, isLoading]);
+
   // Read active tab directly from URL query string or default to 'profile'
   const tabFromUrl = searchParams.get("tab");
   const resolvedTab: AccountTab = isValidTab(tabFromUrl) ? tabFromUrl : "profile";
@@ -58,6 +102,40 @@ function AccountPageContent() {
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          setUser(data.user);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to refresh user:", err);
+    }
+  };
+
+  const handleLogOut = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+    router.replace("/login");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-[480px] flex flex-col items-center justify-center gap-4 text-center">
+        <div className="w-8 h-8 border-2 border-[#5C4529] border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs uppercase tracking-[0.22em] text-[#5C4529] font-medium font-sans">
+          Verifying Vault Access...
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-12 lg:gap-16">
       {/* 1. SIDEBAR - STRICTLY STATIC (NO ANIMATIONS / NO WRAPPERS) */}
@@ -66,6 +144,7 @@ function AccountPageContent() {
           activeTab={activeTab}
           onSelectTab={handleTabChange}
           onTabChange={handleTabChange}
+          onLogOut={handleLogOut}
         />
       </aside>
 
@@ -79,11 +158,21 @@ function AccountPageContent() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.28, ease: [0.25, 1, 0.5, 1] }}
           >
-            {activeTab === "profile" && <ClientProfileView onTabChange={handleTabChange} />}
-            {activeTab === "orders" && <ClientOrdersView onTabChange={handleTabChange} />}
-            {activeTab === "addresses" && <ClientAddressesView onTabChange={handleTabChange} />}
-            {activeTab === "wishlist" && <ClientWishlistView onTabChange={handleTabChange} />}
-            {activeTab === "settings" && <ClientSettingsView onTabChange={handleTabChange} />}
+            {activeTab === "profile" && (
+              <ClientProfileView user={user} onUpdate={refreshUser} onTabChange={handleTabChange} />
+            )}
+            {activeTab === "orders" && (
+              <ClientOrdersView user={user} onTabChange={handleTabChange} />
+            )}
+            {activeTab === "addresses" && (
+              <ClientAddressesView user={user} onUpdate={refreshUser} onTabChange={handleTabChange} />
+            )}
+            {activeTab === "wishlist" && (
+              <ClientWishlistView user={user} onTabChange={handleTabChange} />
+            )}
+            {activeTab === "settings" && (
+              <ClientSettingsView user={user} onUpdate={refreshUser} onTabChange={handleTabChange} />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>

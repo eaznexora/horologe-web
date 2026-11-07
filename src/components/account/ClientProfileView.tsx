@@ -31,12 +31,32 @@ const NAV_ITEMS: NavItem[] = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
+interface UserProps {
+  _id?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  createdAt?: string | Date;
+  addresses?: Array<{
+    country?: string;
+    city?: string;
+  }>;
+}
+
 interface ClientProfileViewProps {
+  user?: UserProps | null;
+  onUpdate?: () => Promise<void> | void;
   onTabChange?: (tab: string) => void;
   hideSidebar?: boolean;
 }
 
-export default function ClientProfileView({ onTabChange, hideSidebar = true }: ClientProfileViewProps = {}) {
+export default function ClientProfileView({
+  user,
+  onUpdate,
+  onTabChange,
+  hideSidebar = true,
+}: ClientProfileViewProps = {}) {
   const [activeTab, setActiveTab] = useState("profile");
 
   const handleNavClick = (tabId: string) => {
@@ -48,50 +68,91 @@ export default function ClientProfileView({ onTabChange, hideSidebar = true }: C
 
   // Editable Profile Data
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
+  const [isSavingPersonal, setIsSavingPersonal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const initialFullName = user?.name || "";
+  const initialEmail = user?.email || "";
+  const initialPhone = user?.phone || "";
+  const initialCountry = user?.country || user?.addresses?.[0]?.country || "India";
+
   const [personalInfo, setPersonalInfo] = useState({
-    fullName: "Ameen Sarguroh",
-    email: "ameen@example.com",
-    phone: "+971 50 123 4567",
-    country: "United Arab Emirates",
+    fullName: initialFullName,
+    email: initialEmail,
+    phone: initialPhone,
+    country: initialCountry,
   });
   const [personalForm, setPersonalForm] = useState(personalInfo);
 
-  // Editable Security
-  const [isEditingSecurity, setIsEditingSecurity] = useState(false);
-  const [passwordNotice, setPasswordNotice] = useState("Last updated on 12 Oct 2026");
-  const [securityForm, setSecurityForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
+  // Sync when user prop is loaded or updated, or fetch if not present
+  React.useEffect(() => {
+    if (user) {
+      const data = {
+        fullName: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        country: user.country || user.addresses?.[0]?.country || "India",
+      };
+      setPersonalInfo(data);
+      setPersonalForm(data);
+    } else {
+      // Fallback fetch from /api/auth/me
+      fetch("/api/auth/me")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.user) {
+            const fetched = {
+              fullName: data.user.name || "",
+              email: data.user.email || "",
+              phone: data.user.phone || "",
+              country: data.user.country || data.user.addresses?.[0]?.country || "India",
+            };
+            setPersonalInfo(fetched);
+            setPersonalForm(fetched);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [user]);
 
   // Notification Preferences
   const [orderUpdates, setOrderUpdates] = useState(true);
   const [promotions, setPromotions] = useState(true);
 
-  const handleSavePersonal = (e: React.FormEvent) => {
+  const handleSavePersonal = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPersonalInfo(personalForm);
-    setIsEditingPersonal(false);
+    setIsSavingPersonal(true);
+    try {
+      const res = await fetch("/api/account/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: personalForm.fullName,
+          phone: personalForm.phone,
+          country: personalForm.country,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update profile");
+      }
+      setPersonalInfo(personalForm);
+      setIsEditingPersonal(false);
+      if (onUpdate) await onUpdate();
+      setToastMessage("Collector profile successfully updated.");
+      setTimeout(() => setToastMessage(null), 3200);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update profile";
+      setToastMessage(msg);
+      setTimeout(() => setToastMessage(null), 3200);
+    } finally {
+      setIsSavingPersonal(false);
+    }
   };
 
   const handleCancelPersonal = () => {
     setPersonalForm(personalInfo);
     setIsEditingPersonal(false);
-  };
-
-  const handleSaveSecurity = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (securityForm.newPassword) {
-      setPasswordNotice("Last updated just now");
-    }
-    setSecurityForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    setIsEditingSecurity(false);
-  };
-
-  const handleCancelSecurity = () => {
-    setSecurityForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    setIsEditingSecurity(false);
   };
 
   return (
@@ -103,6 +164,14 @@ export default function ClientProfileView({ onTabChange, hideSidebar = true }: C
 
         {/* Right Main Content Area */}
         <div className="w-full">
+          {/* Toast Notice */}
+          {toastMessage && (
+            <div className="mb-6 p-3.5 bg-[#FAF7F2] border border-[#5C4529]/30 text-xs text-[#5C4529] font-medium tracking-wide flex items-center gap-2">
+              <Check size={14} className="text-[#5C4529] shrink-0" />
+              <span>{toastMessage}</span>
+            </div>
+          )}
+
           {/* Header Block */}
           <div className="mb-6">
             <h1 className="font-serif text-[32px] lg:text-[40px] uppercase tracking-wide text-[#2C241E] leading-tight">
@@ -160,16 +229,14 @@ export default function ClientProfileView({ onTabChange, hideSidebar = true }: C
                   </div>
                   <div>
                     <label className="text-[11px] lg:text-[12px] uppercase tracking-[0.18em] text-[#786B5D] font-medium block mb-1.5">
-                      Email Address
+                      Email Address (Account Identifier)
                     </label>
                     <input
                       type="email"
                       value={personalForm.email}
-                      onChange={(e) =>
-                        setPersonalForm({ ...personalForm, email: e.target.value })
-                      }
-                      className="w-full px-3.5 py-2 bg-[#FAF7F2] border border-[#D2C4B4] text-[#2C241E] text-[15px] focus:outline-none focus:border-[#5C4529]"
-                      required
+                      readOnly
+                      disabled
+                      className="w-full px-3.5 py-2 bg-[#EFE8DD]/70 border border-[#D2C4B4] text-[#786B5D] text-[15px] cursor-not-allowed outline-none select-none"
                     />
                   </div>
                   <div>
@@ -178,10 +245,20 @@ export default function ClientProfileView({ onTabChange, hideSidebar = true }: C
                     </label>
                     <input
                       type="tel"
+                      inputMode="tel"
+                      pattern="[0-9+\s\-]*"
                       value={personalForm.phone}
-                      onChange={(e) =>
-                        setPersonalForm({ ...personalForm, phone: e.target.value })
-                      }
+                      onChange={(e) => {
+                        const cleanValue = e.target.value.replace(/[^0-9+\s-]/g, "");
+                        setPersonalForm({ ...personalForm, phone: cleanValue });
+                      }}
+                      onKeyDown={(e) => {
+                        if (["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)) return;
+                        if (!/[0-9+\s-]/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      placeholder="+91 98765 43210"
                       className="w-full px-3.5 py-2 bg-[#FAF7F2] border border-[#D2C4B4] text-[#2C241E] text-[15px] focus:outline-none focus:border-[#5C4529]"
                     />
                   </div>
@@ -254,120 +331,19 @@ export default function ClientProfileView({ onTabChange, hideSidebar = true }: C
                     {personalInfo.country}
                   </span>
                 </div>
-              </div>
-            )}
-          </section>
 
-          {/* Section 2: Account Security Card */}
-          <section className="mb-8">
-            <div className="flex justify-between items-start gap-4 mb-3">
-              <div>
-                <h2 className="font-serif text-[22px] lg:text-[24px] text-[#3D332A] leading-snug">
-                  Account Security
-                </h2>
-                <p className="text-xs lg:text-[13px] text-[#786B5D] mt-0.5">
-                  Manage your password and keep your account secure.
-                </p>
-              </div>
-
-              {!isEditingSecurity && (
-                <button
-                  type="button"
-                  onClick={() => setIsEditingSecurity(true)}
-                  className="bg-[#5C4529] hover:bg-[#47341D] text-[#F9F5EF] text-xs uppercase tracking-wider px-4 py-1.5 flex items-center gap-1.5 transition-colors cursor-pointer select-none shrink-0"
-                >
-                  <Pencil size={12} />
-                  <span>Edit</span>
-                </button>
-              )}
-            </div>
-
-            {isEditingSecurity ? (
-              <form onSubmit={handleSaveSecurity} className="pt-4 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-[11px] lg:text-[12px] uppercase tracking-[0.18em] text-[#786B5D] font-medium block mb-1.5">
-                      Current Password
-                    </label>
-                    <input
-                      type="password"
-                      value={securityForm.currentPassword}
-                      onChange={(e) =>
-                        setSecurityForm({
-                          ...securityForm,
-                          currentPassword: e.target.value,
-                        })
-                      }
-                      className="w-full px-3.5 py-2 bg-[#FAF7F2] border border-[#D2C4B4] text-[#2C241E] text-[15px] focus:outline-none focus:border-[#5C4529]"
-                      placeholder="•••••••••"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] lg:text-[12px] uppercase tracking-[0.18em] text-[#786B5D] font-medium block mb-1.5">
-                      New Password
-                    </label>
-                    <input
-                      type="password"
-                      value={securityForm.newPassword}
-                      onChange={(e) =>
-                        setSecurityForm({
-                          ...securityForm,
-                          newPassword: e.target.value,
-                        })
-                      }
-                      className="w-full px-3.5 py-2 bg-[#FAF7F2] border border-[#D2C4B4] text-[#2C241E] text-[15px] focus:outline-none focus:border-[#5C4529]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] lg:text-[12px] uppercase tracking-[0.18em] text-[#786B5D] font-medium block mb-1.5">
-                      Confirm New Password
-                    </label>
-                    <input
-                      type="password"
-                      value={securityForm.confirmPassword}
-                      onChange={(e) =>
-                        setSecurityForm({
-                          ...securityForm,
-                          confirmPassword: e.target.value,
-                        })
-                      }
-                      className="w-full px-3.5 py-2 bg-[#FAF7F2] border border-[#D2C4B4] text-[#2C241E] text-[15px] focus:outline-none focus:border-[#5C4529]"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    type="submit"
-                    className="bg-[#5C4529] hover:bg-[#47341D] text-[#F9F5EF] text-xs uppercase tracking-wider px-5 py-2 flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Check size={14} />
-                    <span>Update Password</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelSecurity}
-                    className="border border-[#D2C4B4] hover:bg-[#DFD2C2]/40 text-[#635546] text-xs uppercase tracking-wider px-5 py-2 transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="flex flex-col gap-1 py-4 md:grid md:grid-cols-[220px_1fr] md:gap-0 md:items-center">
-                <span className="text-[11px] lg:text-[12px] uppercase tracking-[0.18em] text-[#786B5D] font-medium">
-                  PASSWORD
-                </span>
-                <div>
-                  <span className="text-[15px] lg:text-[16px] text-[#2C241E] font-sans tracking-widest">
-                    •••••••••
+                <div className="flex flex-col gap-1 py-3.5 md:grid md:grid-cols-[220px_1fr] md:gap-0 md:items-center">
+                  <span className="text-[11px] lg:text-[12px] uppercase tracking-[0.18em] text-[#786B5D] font-medium">
+                    MEMBER SINCE
                   </span>
-                  <p className="text-xs text-[#8A7C6E] mt-1 font-sans">
-                    {passwordNotice}
-                  </p>
+                  <span className="text-[15px] lg:text-[16px] text-[#2C241E] font-sans">
+                    {user?.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : "Privileged Patron"}
+                  </span>
                 </div>
               </div>
             )}
@@ -376,7 +352,7 @@ export default function ClientProfileView({ onTabChange, hideSidebar = true }: C
           {/* Separator */}
           <div className="w-full h-[1px] bg-[#D2C4B4] my-8" />
 
-          {/* Section 3: Notification Preferences */}
+          {/* Section 2: Notification Preferences */}
           <section className="mb-0">
             <div className="mb-6">
               <h2 className="font-serif text-[22px] lg:text-[24px] text-[#3D332A] leading-snug">

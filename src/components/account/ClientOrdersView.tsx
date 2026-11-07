@@ -54,88 +54,91 @@ export interface OrderItem {
   paymentMethod: string;
 }
 
-const SAMPLE_ORDERS: OrderItem[] = [
-  {
-    id: "ord-1",
-    orderNumber: "#HR12684",
-    date: "12 Oct 2026",
-    status: "Delivered",
-    productName: "Rolex Cosmograph Daytona",
-    specsLine1: "Chronograph  |  Automatic",
-    specsLine2: "Rose Gold",
-    image: "/assets/Rolex Daytona.png",
-    deliveryLabel: "Delivered on",
-    deliveryDate: "15 Oct 2026",
-    price: "₹20,00,000",
-    itemCount: "1 item",
-    shippingAddress: "Villa 42, Palm Jumeirah, Dubai, UAE",
-    trackingNumber: "HR-DXB-984128",
-    paymentMethod: "Wire Transfer (Verified)",
-  },
-  {
-    id: "ord-2",
-    orderNumber: "#HR11942",
-    date: "28 Sep 2026",
-    status: "Shipped",
-    productName: "Audemars Piguet Royal Oak",
-    specsLine1: "Chronograph 41mm  |  Automatic",
-    specsLine2: "Smoked Blue Dial",
-    image: "/assets/AP.png",
-    deliveryLabel: "Estimated Delivery",
-    deliveryDate: "29 Oct 2026",
-    price: "₹28,50,000",
-    itemCount: "1 item",
-    shippingAddress: "Penthouse 18B, Emirates Hills, Dubai, UAE",
-    trackingNumber: "HR-DXB-772190",
-    paymentMethod: "Escrow Vault Transfer",
-  },
-  {
-    id: "ord-3",
-    orderNumber: "#HR10831",
-    date: "15 Aug 2026",
-    status: "Processing",
-    productName: "Patek Philippe Grand Complications",
-    specsLine1: "Perpetual Calendar  |  Self-Winding",
-    specsLine2: "Platinum Case",
-    image: "/assets/categories-brandnew.png",
-    deliveryLabel: "Processing at Vault",
-    deliveryDate: "Dispatches in 2 days",
-    price: "₹45,00,000",
-    itemCount: "1 item",
-    shippingAddress: "Villa 42, Palm Jumeirah, Dubai, UAE",
-    trackingNumber: "HR-VAULT-44120",
-    paymentMethod: "Credit Card (•••• 8821)",
-  },
-  {
-    id: "ord-4",
-    orderNumber: "#HR09415",
-    date: "04 Jun 2026",
-    status: "Cancelled",
-    productName: "Vacheron Constantin Overseas",
-    specsLine1: "Dual Time  |  Automatic",
-    specsLine2: "Silver Dial",
-    image: "/assets/product-details-main.png",
-    deliveryLabel: "Order Cancelled",
-    deliveryDate: "Refund processed on 05 Jun",
-    price: "₹18,00,000",
-    itemCount: "1 item",
-    shippingAddress: "Villa 42, Palm Jumeirah, Dubai, UAE",
-    trackingNumber: "HR-CAN-11029",
-    paymentMethod: "Wire Transfer (Refunded)",
-  },
-];
-
 interface ClientOrdersViewProps {
+  user?: any;
   onTabChange?: (tab: string) => void;
   hideSidebar?: boolean;
 }
 
-export default function ClientOrdersView({ onTabChange, hideSidebar = true }: ClientOrdersViewProps) {
+export default function ClientOrdersView({
+  user,
+  onTabChange,
+  hideSidebar = true,
+}: ClientOrdersViewProps) {
   const [activeTab, setActiveTab] = useState("orders");
   const [selectedFilter, setSelectedFilter] = useState<string>("All Orders");
   const [sortBy, setSortBy] = useState<string>("newest");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
+  const [liveOrders, setLiveOrders] = useState<OrderItem[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+
+  // Fetch live orders from MongoDB for authenticated user
+  React.useEffect(() => {
+    let isMounted = true;
+    async function fetchOrders() {
+      try {
+        const res = await fetch("/api/account/orders");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.orders)) {
+            const mapped: OrderItem[] = data.orders.map((o: any) => ({
+              id: o._id,
+              orderNumber: o.orderNumber || `#HR-${String(o._id).slice(-6).toUpperCase()}`,
+              date: o.createdAt
+                ? new Date(o.createdAt).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "Recent",
+              status:
+                String(o.fulfillmentStatus || "").toLowerCase() === "delivered"
+                  ? "Delivered"
+                  : String(o.fulfillmentStatus || "").toLowerCase() === "shipped" || String(o.fulfillmentStatus || "").toLowerCase() === "in_transit"
+                  ? "Shipped"
+                  : String(o.fulfillmentStatus || "").toLowerCase() === "cancelled"
+                  ? "Cancelled"
+                  : "Processing",
+              productName: o.items?.[0]?.name || "Horologe Royale Certified Timepiece",
+              specsLine1: o.items?.[0]?.specs || (o.items?.[0]?.brand ? `${o.items?.[0]?.brand} ${o.items?.[0]?.model || ""}`.trim() : "Authenticated Vault Storage"),
+              specsLine2: o.items?.[0]?.reference || o.items?.[0]?.brand || "Master Collection",
+              image: o.items?.[0]?.image || "/assets/admin-hero-watch.jpg",
+              deliveryLabel: String(o.fulfillmentStatus || "").toLowerCase() === "delivered" ? "Delivered on" : "Delivery Status",
+              deliveryDate: o.updatedAt
+                ? new Date(o.updatedAt).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "In Vault Transit",
+              price: formatINR(o.financials?.totalAmount || 0),
+              itemCount: `${o.items?.length || 1} item${(o.items?.length || 1) > 1 ? "s" : ""}`,
+              shippingAddress:
+                [o.shippingAddress?.line1 || o.shippingAddress?.street, o.shippingAddress?.city, o.shippingAddress?.country]
+                  .filter(Boolean)
+                  .join(", ") || "Private Vault Delivery",
+              trackingNumber: o.fulfillment?.trackingNumber || `HR-TRK-${String(o._id).slice(-8).toUpperCase()}`,
+              paymentMethod: o.paymentGateway?.gateway
+                ? `${o.paymentGateway.gateway.toUpperCase()} (${o.paymentGateway.paymentStatus || "Captured"})`
+                : o.payment?.method
+                ? `${o.payment.method.toUpperCase()} (${o.payment.status || "Escrow"})`
+                : "Escrow Transfer",
+            }));
+            if (isMounted) setLiveOrders(mapped);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading account orders:", err);
+      } finally {
+        if (isMounted) setIsLoadingOrders(false);
+      }
+    }
+    fetchOrders();
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   const handleNavClick = (tabId: string) => {
     setActiveTab(tabId);
@@ -144,8 +147,8 @@ export default function ClientOrdersView({ onTabChange, hideSidebar = true }: Cl
     }
   };
 
-  // Filter orders
-  const filteredOrders = SAMPLE_ORDERS.filter((order) => {
+  // Filter orders - live orders from database
+  const filteredOrders = liveOrders.filter((order) => {
     if (selectedFilter === "All Orders") return true;
     return order.status.toLowerCase() === selectedFilter.toLowerCase();
   });
@@ -189,7 +192,7 @@ export default function ClientOrdersView({ onTabChange, hideSidebar = true }: Cl
         );
       case "Cancelled":
         return (
-          <span style={timesStyle} className="bg-[#FDE7E7] text-[#9E3535] px-3.5 py-0.5 text-xs font-normal rounded-full inline-flex items-center justify-center select-none">
+          <span style={timesStyle} className="bg-[#EFE8DD] text-[#5C4529] border border-[#DFCFC0] px-3.5 py-0.5 text-xs font-normal rounded-full inline-flex items-center justify-center select-none">
             Cancelled
           </span>
         );
@@ -323,13 +326,30 @@ export default function ClientOrdersView({ onTabChange, hideSidebar = true }: Cl
 
           {/* Orders List Container */}
           <div className="space-y-4">
-            {sortedOrders.length === 0 ? (
-              <div className="py-16 text-center border border-[#D4C6B3] bg-[#EFE7DE]/50">
-                <Package size={36} className="mx-auto text-[#8A7C6E] mb-3 opacity-60" />
-                <p className="font-serif text-lg text-[#2C241E]">No orders found</p>
-                <p className="text-xs text-[#786B5D] mt-1">
-                  You do not have any orders matching the &ldquo;{selectedFilter}&rdquo; filter.
+            {isLoadingOrders ? (
+              <div className="py-20 text-center border border-[#D4C6B3] bg-[#EFE7DE]/30">
+                <div className="w-7 h-7 border-2 border-[#5C4529] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-xs uppercase tracking-[0.2em] text-[#5C4529] font-medium">
+                  Loading Acquisition Records...
                 </p>
+              </div>
+            ) : sortedOrders.length === 0 ? (
+              <div className="py-16 text-center border border-[#D4C6B3] bg-[#EFE7DE]/50 px-6 rounded-none">
+                <Package size={36} className="mx-auto text-[#8A7C6E] mb-3 opacity-60" />
+                <h3 className="font-serif text-2xl uppercase tracking-wider text-[#2C241E]">
+                  YOUR PRIVATE VAULT LEDGER IS EMPTY
+                </h3>
+                <p className="text-xs sm:text-sm text-[#786B5D] mt-2 max-w-md mx-auto leading-relaxed font-sans">
+                  Acquisitions and certified timepiece orders will appear here once finalized.
+                </p>
+                <div className="mt-6">
+                  <a
+                    href="/collections"
+                    className="inline-flex items-center gap-2 bg-[#5C4529] hover:bg-[#48361F] text-[#FAF6F0] px-6 py-3 text-xs uppercase tracking-[0.18em] font-semibold transition-all rounded-none"
+                  >
+                    <span>EXPLORE COLLECTIONS →</span>
+                  </a>
+                </div>
               </div>
             ) : (
               sortedOrders.map((order) => (

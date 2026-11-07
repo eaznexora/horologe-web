@@ -46,12 +46,17 @@ export default function AccountSidebar({
     }
   };
 
-  const handleLogOutClick = () => {
+  const handleLogOutClick = async () => {
     if (onLogOut) {
       onLogOut();
     } else {
+      try {
+        await fetch("/api/auth/logout", { method: "POST" });
+      } catch (err) {
+        console.error("Logout error:", err);
+      }
       if (typeof window !== "undefined") {
-        window.location.href = "/";
+        window.location.href = "/login";
       }
     }
   };
@@ -69,11 +74,10 @@ export default function AccountSidebar({
                 key={item.id}
                 type="button"
                 onClick={() => handleNavClick(item.id)}
-                className={`flex items-center gap-2 px-4 py-2 text-xs uppercase font-medium tracking-wider shrink-0 transition-colors duration-200 cursor-pointer ${
-                  isActive
+                className={`flex items-center gap-2 px-4 py-2 text-xs uppercase font-medium tracking-wider shrink-0 transition-colors duration-200 cursor-pointer ${isActive
                     ? "bg-[#DFD2C2] text-[#2C241E] shadow-sm"
                     : "text-[#635546] hover:text-[#2C241E] hover:bg-[#DFD2C2]/40"
-                }`}
+                  }`}
               >
                 <Icon size={14} />
                 <span>{item.label}</span>
@@ -107,11 +111,10 @@ export default function AccountSidebar({
                 key={item.id}
                 type="button"
                 onClick={() => handleNavClick(item.id)}
-                className={`flex items-center gap-3.5 py-3 px-4 text-[14px] transition-colors duration-200 cursor-pointer relative text-left w-full ${
-                  isActive
+                className={`flex items-center gap-3.5 py-3 px-4 text-[14px] transition-colors duration-200 cursor-pointer relative text-left w-full ${isActive
                     ? "bg-[#DFD2C2] text-[#2C241E] font-medium"
                     : "text-[#635546] hover:text-[#2C241E] hover:bg-[#DFD2C2]/40"
-                }`}
+                  }`}
               >
                 {/* Left bronze accent indicator bar */}
                 {isActive && (

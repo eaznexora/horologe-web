@@ -278,8 +278,19 @@ export default function ConciergePage() {
                         {/* Phone input */}
                         <input
                           type="tel"
+                          inputMode="tel"
+                          pattern="[0-9+\s\-]*"
                           value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          onChange={(e) => {
+                            const cleanValue = e.target.value.replace(/[^0-9+\s-]/g, "");
+                            setPhoneNumber(cleanValue);
+                          }}
+                          onKeyDown={(e) => {
+                            if (["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)) return;
+                            if (!/[0-9+\s-]/.test(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
                           placeholder="Your Phone Number"
                           className="flex-1 min-w-0 bg-[#EDE5DA] border border-[#9C846E] text-[#2C241E] placeholder-[#B3A293] rounded-none px-3.5 py-2.5 text-sm outline-none focus:border-[#6E4F2E] focus:bg-[#F3ECE2] transition-colors"
                         />

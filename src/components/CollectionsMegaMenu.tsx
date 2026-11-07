@@ -69,28 +69,28 @@ const STATIC_FALLBACK_CATEGORIES: DynamicCategory[] = [
 
 export default function CollectionsMegaMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const [categories, setCategories] = useState<DynamicCategory[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("horologe_categories_cache");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {
-        // Fallback to static data
-      }
-    }
-    return STATIC_FALLBACK_CATEGORIES;
-  });
-
+  const [categories, setCategories] = useState<DynamicCategory[]>(STATIC_FALLBACK_CATEGORIES);
   const [activeParentSlug, setActiveParentSlug] = useState<string>("pre-owned");
   const containerRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch live categories from backend API on mount
+  // Hydrate cached categories and fetch live categories after client mount to prevent SSR mismatch
   useEffect(() => {
     let isMounted = true;
+
+    // Load cached categories if present on client
+    try {
+      const cached = localStorage.getItem("horologe_categories_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0 && isMounted) {
+          setCategories(parsed);
+        }
+      }
+    } catch {
+      // Fallback silently to static categories
+    }
+
     async function fetchCategories() {
       try {
         const res = await fetch("/api/admin/categories");

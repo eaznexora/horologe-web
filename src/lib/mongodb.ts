@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
 import dns from 'node:dns';
 
-// Configure DNS servers fallback to prevent Windows Node.js querySrv ECONNREFUSED
+// Fix Windows Node.js querySrv ECONNREFUSED issue with Atlas
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch {
-  // Ignore if restricted
+} catch (e) {
+  // Ignore in environments where custom DNS servers cannot be set
 }
 
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -30,29 +30,47 @@ if (!cached) {
   cached = global.mongooseCache = { conn: null, promise: null };
 }
 
-const safeCache = cached;
-
 export async function connectToDatabase() {
-  if (safeCache.conn) {
-    return safeCache.conn;
+  // Ensure custom DNS servers are active on Windows before each connection attempt
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch (e) {
+    // Ignore in environments where custom DNS servers cannot be set
   }
 
-  if (!safeCache.promise) {
-    const opts = {
+  // If connection is already open and ready (readyState === 1), reuse it immediately
+  if (cached?.conn && mongoose.connection.readyState === 1) {
+    return cached.conn;
+  }
+
+  // If a connection is in flight, wait for it
+  if (!cached?.promise) {
+    const opts: mongoose.ConnectOptions = {
       bufferCommands: false,
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 8000,
+      socketTimeoutMS: 45000,
     };
 
-    safeCache.promise = mongoose.connect(MONGODB_URI!, opts).then((instance) => {
-      return instance;
-    });
+    cached!.promise = mongoose
+      .connect(MONGODB_URI!, opts)
+      .then((m) => {
+        return m;
+      })
+      .catch((err) => {
+        cached!.promise = null;
+        cached!.conn = null;
+        throw err;
+      });
   }
 
   try {
-    safeCache.conn = await safeCache.promise;
+    cached!.conn = await cached!.promise;
   } catch (e) {
-    safeCache.promise = null;
+    cached!.promise = null;
+    cached!.conn = null;
     throw e;
   }
 
-  return safeCache.conn;
+  return cached!.conn;
 }

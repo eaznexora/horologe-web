@@ -18,11 +18,18 @@ import {
 import AccountSidebar from "./AccountSidebar";
 
 interface ClientSettingsViewProps {
+  user?: any;
+  onUpdate?: () => Promise<void> | void;
   onTabChange?: (tab: string) => void;
   hideSidebar?: boolean;
 }
 
-export default function ClientSettingsView({ onTabChange, hideSidebar = true }: ClientSettingsViewProps) {
+export default function ClientSettingsView({
+  user,
+  onUpdate,
+  onTabChange,
+  hideSidebar = true,
+}: ClientSettingsViewProps) {
   // Notification toggle states
   const [orderUpdates, setOrderUpdates] = useState(true);
   const [newArrivals, setNewArrivals] = useState(true);
@@ -49,6 +56,8 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
     newPassword: "",
     confirmPassword: "",
   });
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -67,19 +76,44 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
     showToast(`${title} notifications ${nextVal ? "enabled" : "disabled"}.`);
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPasswordError(null);
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showToast("New passwords do not match.");
+      setPasswordError("New passwords do not match.");
       return;
     }
     if (passwordForm.newPassword.length < 8) {
-      showToast("Password must be at least 8 characters.");
+      setPasswordError("Password must be at least 8 characters long.");
       return;
     }
-    showToast("Password updated successfully.");
-    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    setIsPasswordModalOpen(false);
+
+    setIsUpdatingPassword(true);
+    try {
+      const res = await fetch("/api/account/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update password");
+      }
+
+      showToast("Security password updated successfully in vault.");
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setIsPasswordModalOpen(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error updating password";
+      setPasswordError(msg);
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   const handleLanguageSubmit = (e: React.FormEvent) => {
@@ -123,7 +157,7 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
           <div className="w-full h-[1px] bg-[#D2C4B4] mt-4 mb-8" />
 
           {/* Card 1: Account Settings */}
-          <div className="border border-[#D4C6B3] bg-[#EFE7DE]/80 p-5 sm:p-6 mb-6 rounded-[3px]">
+          <div className="border border-[#D4C6B3] bg-[#EFE7DE]/80 p-5 sm:p-6 mb-6 rounded-none">
             <div>
               <h2 className="font-serif text-[20px] lg:text-[22px] text-[#2C241E]">
                 Account Settings
@@ -405,14 +439,14 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(true)}
-                className="w-full flex items-center justify-between py-4 cursor-pointer hover:bg-red-500/[0.03] transition-colors group text-left"
+                className="w-full flex items-center justify-between py-4 cursor-pointer hover:bg-black/[0.02] transition-colors group text-left"
               >
                 <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 flex-1 pr-4">
-                  <div className="w-9 h-9 rounded-full bg-red-100/60 flex items-center justify-center shrink-0 text-[#9E3535]">
+                  <div className="w-9 h-9 rounded-none bg-[#EFE8DD] flex items-center justify-center shrink-0 text-[#5C4529]">
                     <Trash2 size={18} />
                   </div>
                   <div>
-                    <h3 className="text-[15px] sm:text-[16px] text-[#9E3535] font-medium leading-snug">
+                    <h3 className="text-[15px] sm:text-[16px] text-[#2C241E] font-medium leading-snug">
                       Delete Account
                     </h3>
                     <p className="text-xs sm:text-[13px] text-[#786B5D] font-sans leading-relaxed mt-0.5">
@@ -421,7 +455,7 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
                   </div>
                 </div>
                 <div className="shrink-0 flex items-center">
-                  <ChevronRight size={18} className="text-[#9E3535] group-hover:translate-x-0.5 transition-transform" />
+                  <ChevronRight size={18} className="text-[#786B5D] group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </button>
             </div>
@@ -432,7 +466,7 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
       {/* Password Modal */}
       {isPasswordModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2C241E]/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="font-times-card bg-[#EFE7DE] border border-[#D4C6B3] w-full max-w-md p-6 sm:p-7 rounded-[3px] shadow-2xl relative">
+          <div className="font-times-card bg-[#EFE7DE] border border-[#D4C6B3] w-full max-w-md p-6 sm:p-7 rounded-none shadow-2xl relative">
             <button
               type="button"
               onClick={() => setIsPasswordModalOpen(false)}
@@ -441,9 +475,16 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
               <X size={18} />
             </button>
             <h2 className="font-serif text-[22px] text-[#2C241E] mb-1">Update Password</h2>
-            <p className="text-xs text-[#786B5D] font-sans mb-5">
+            <p className="text-xs text-[#786B5D] font-sans mb-4">
               Ensure your account is protected with a secure password.
             </p>
+
+            {/* Bronze Error Banner (Strict Zero Red) */}
+            {passwordError && (
+              <div className="mb-4 p-3 bg-[#FAF7F2] border border-[#5C4529]/30 text-xs text-[#5C4529] font-medium tracking-wide">
+                {passwordError}
+              </div>
+            )}
 
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div>
@@ -458,7 +499,7 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
                   onChange={(e) =>
                     setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
                   }
-                  className="w-full bg-[#F7F2EB] border border-[#D4C6B3] px-3.5 py-2 text-sm text-[#2C241E] focus:outline-none focus:border-[#5C4529]"
+                  className="w-full bg-[#F7F2EB] border border-[#D4C6B3] px-3.5 py-2 text-sm text-[#2C241E] focus:outline-none focus:border-[#5C4529] rounded-none"
                 />
               </div>
 
@@ -474,7 +515,7 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
                   onChange={(e) =>
                     setPasswordForm({ ...passwordForm, newPassword: e.target.value })
                   }
-                  className="w-full bg-[#F7F2EB] border border-[#D4C6B3] px-3.5 py-2 text-sm text-[#2C241E] focus:outline-none focus:border-[#5C4529]"
+                  className="w-full bg-[#F7F2EB] border border-[#D4C6B3] px-3.5 py-2 text-sm text-[#2C241E] focus:outline-none focus:border-[#5C4529] rounded-none"
                 />
               </div>
 
@@ -490,7 +531,7 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
                   onChange={(e) =>
                     setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
                   }
-                  className="w-full bg-[#F7F2EB] border border-[#D4C6B3] px-3.5 py-2 text-sm text-[#2C241E] focus:outline-none focus:border-[#5C4529]"
+                  className="w-full bg-[#F7F2EB] border border-[#D4C6B3] px-3.5 py-2 text-sm text-[#2C241E] focus:outline-none focus:border-[#5C4529] rounded-none"
                 />
               </div>
 
@@ -498,15 +539,16 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
                 <button
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}
-                  className="px-4 py-2 text-xs font-serif text-[#6B5D4F] hover:text-[#2C241E] transition-colors cursor-pointer"
+                  className="px-4 py-2 text-xs font-serif text-[#6B5D4F] hover:text-[#2C241E] transition-colors cursor-pointer rounded-none"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#5C4529] hover:bg-[#47341D] text-[#F9F5EF] text-xs font-medium uppercase tracking-wider px-5 py-2.5 transition-colors cursor-pointer"
+                  disabled={isUpdatingPassword}
+                  className="bg-[#5C4529] hover:bg-[#47341D] text-[#F9F5EF] text-xs font-medium uppercase tracking-wider px-5 py-2.5 transition-colors cursor-pointer rounded-none disabled:opacity-70 flex items-center gap-2"
                 >
-                  Update Password
+                  {isUpdatingPassword ? "Updating..." : "Update Password"}
                 </button>
               </div>
             </form>
@@ -517,7 +559,7 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
       {/* Language & Region Modal */}
       {isLanguageModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2C241E]/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="font-times-card bg-[#EFE7DE] border border-[#D4C6B3] w-full max-w-md p-6 sm:p-7 rounded-[3px] shadow-2xl relative">
+          <div className="font-times-card bg-[#EFE7DE] border border-[#D4C6B3] w-full max-w-md p-6 sm:p-7 rounded-none shadow-2xl relative">
             <button
               type="button"
               onClick={() => setIsLanguageModalOpen(false)}
@@ -646,8 +688,8 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
       {/* Delete Account Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2C241E]/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="font-times-card bg-[#EFE7DE] border border-[#D4C6B3] w-full max-w-md p-6 sm:p-7 rounded-[3px] shadow-2xl relative">
-            <h3 className="font-serif text-[22px] text-[#9E3535] mb-2">Delete Horologe Account?</h3>
+          <div className="font-times-card bg-[#EFE7DE] border border-[#D4C6B3] w-full max-w-md p-6 sm:p-7 rounded-none shadow-2xl relative">
+            <h3 className="font-serif text-[22px] text-[#2C241E] mb-2">Delete Horologe Account?</h3>
             <p className="text-sm text-[#6B5D4F] font-sans leading-relaxed mb-6">
               This action is permanent and cannot be reversed. You will forfeit your order history, guarantee certificates, saved preferences, and private horological concierge allocations.
             </p>
@@ -655,14 +697,14 @@ export default function ClientSettingsView({ onTabChange, hideSidebar = true }: 
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 text-xs font-serif text-[#6B5D4F] hover:text-[#2C241E] transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-serif text-[#6B5D4F] hover:text-[#2C241E] transition-colors cursor-pointer rounded-none"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteAccount}
-                className="bg-[#9E3535] hover:bg-[#852828] text-[#F9F5EF] text-xs font-medium uppercase tracking-wider px-5 py-2.5 transition-colors cursor-pointer"
+                className="bg-[#5C4529] hover:bg-[#47341D] text-[#F9F5EF] text-xs font-medium uppercase tracking-wider px-5 py-2.5 transition-colors cursor-pointer rounded-none"
               >
                 Permanently Delete
               </button>

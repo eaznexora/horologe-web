@@ -17,9 +17,13 @@ export interface ITimepieceSeo {
   keywords?: string[];
 }
 
-export interface ITimepiece extends Document {
+export interface ITimepiece {
   name: string;
   slug: string;
+  brand?: string;
+  model?: string;
+  reference?: string;
+  sku?: string;
   images: string[]; // Array of up to 4 image URLs
   minorSpecs: string[]; // Array of up to 3 strings (e.g. ['Chronograph', 'Automatic', 'Oystersteel'])
   category: mongoose.Types.ObjectId;
@@ -71,6 +75,10 @@ const TimepieceSchema = new Schema<ITimepiece>(
   {
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    brand: { type: String, default: '', trim: true },
+    model: { type: String, default: '', trim: true },
+    reference: { type: String, default: '', trim: true },
+    sku: { type: String, default: '', trim: true },
     images: { type: [String], default: [] },
     minorSpecs: { type: [String], default: [] },
     category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },

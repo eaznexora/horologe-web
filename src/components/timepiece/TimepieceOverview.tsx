@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Share2, ArrowLeft, ArrowRight, Info, Check } from "lucide-react";
 
 const galleryImages = [
@@ -410,12 +411,12 @@ export default function TimepieceOverview() {
                 >
                   Enquire
                 </button>
-                <button
-                  type="button"
+                <Link
+                  href="/checkout?slug=rolex-cosmograph-daytona"
                   className="h-[48px] md:h-[52px] lg:h-[56px] bg-[#6D5333] hover:bg-[#574227] active:bg-[#4d3820] text-white font-medium flex items-center justify-center transition-colors cursor-pointer text-[14px] md:text-[16px] font-sans tracking-wide"
                 >
                   Buy Now
-                </button>
+                </Link>
               </div>
             </div>
 

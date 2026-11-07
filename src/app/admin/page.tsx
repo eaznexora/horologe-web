@@ -1,5 +1,4 @@
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Coins,
@@ -20,52 +19,7 @@ export const metadata = {
 export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
-      {/* 1. Welcome Hero Banner */}
-      <div className="relative bg-white/45 backdrop-blur-xl border border-white/70 rounded-2xl p-6 lg:p-8 overflow-hidden shadow-[0_12px_36px_rgba(80,60,40,0.05)]">
-        {/* Ambient Warm Golden Overlay */}
-        <div className="pointer-events-none absolute -top-24 right-1/4 w-80 h-80 rounded-full bg-[#FFF2DE]/70 blur-3xl z-0" />
-
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6 lg:gap-8">
-          {/* Left Typography */}
-          <div className="w-full md:max-w-[55%]">
-            <span className="text-[10px] tracking-[0.25em] uppercase text-[#8C7A6B] font-semibold mb-2 block">
-              WELCOME BACK
-            </span>
-            <h1 className="font-serif text-[32px] sm:text-[36px] lg:text-[42px] text-[#2C241E] leading-[1.12] font-normal tracking-tight">
-              A Curated World
-              <br />
-              of Timepiece Excellence.
-            </h1>
-            <p className="text-xs sm:text-sm text-[#7A6C5E] mt-3 leading-relaxed max-w-lg">
-              Manage your inventory, orders, clients and sourcing — all in one place.
-            </p>
-          </div>
-
-          {/* Right Horology Watch Visual Card */}
-          <div className="w-full md:w-[45%] flex justify-end">
-            <div className="w-full max-w-[360px] h-[160px] sm:h-[180px] lg:h-[195px] rounded-xl overflow-hidden relative shadow-[0_8px_24px_rgba(44,36,30,0.08)] border border-white/60 group">
-              <Image
-                src="/assets/admin-hero-watch.jpg"
-                alt="Rolex Datejust luxury fluted bezel watch dial"
-                fill
-                priority
-                className="object-cover object-center group-hover:scale-105 transition-transform duration-700"
-              />
-              {/* Luxury Vignette & Quotation Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent flex flex-col justify-end p-4 text-right">
-                <span className="font-serif text-[10px] lg:text-[11px] tracking-[0.2em] uppercase text-[#FAF6F0] leading-snug drop-shadow-sm font-medium">
-                  &ldquo;MORE THAN WATCHES.
-                  <br />
-                  A LASTING LEGACY.&rdquo;
-                </span>
-                <div className="w-8 h-[1px] bg-[#C5A880] ml-auto mt-1.5 opacity-80" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. 4 KPI Metric Cards Grid */}
+      {/* 1. 4 KPI Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Vault Valuation */}
         <div className="bg-white/45 backdrop-blur-xl border border-white/70 rounded-2xl p-5 shadow-[0_8px_24px_rgba(80,60,40,0.04)] flex flex-col justify-between hover:border-white/95 transition-all">
