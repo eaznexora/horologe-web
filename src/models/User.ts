@@ -22,6 +22,14 @@ export interface IUser {
   phone?: string;
   country?: string;
   role: 'customer' | 'admin';
+  status?: 'active' | 'blocked';
+  blockedAt?: Date;
+  blockReason?: string;
+  appealMessage?: {
+    message: string;
+    submittedAt?: Date;
+    status: 'none' | 'pending' | 'reviewed';
+  };
   addresses: IAddress[];
   wishlist: mongoose.Types.ObjectId[];
   createdAt: Date;
@@ -52,6 +60,14 @@ const UserSchema = new Schema<IUser>(
     phone: { type: String, trim: true },
     country: { type: String, default: 'India', trim: true },
     role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
+    status: { type: String, enum: ['active', 'blocked'], default: 'active' },
+    blockedAt: { type: Date },
+    blockReason: { type: String, default: '' },
+    appealMessage: {
+      message: { type: String, default: '' },
+      submittedAt: { type: Date },
+      status: { type: String, enum: ['none', 'pending', 'reviewed'], default: 'none' },
+    },
     addresses: [AddressSchema],
     wishlist: [{ type: Schema.Types.ObjectId, ref: 'Timepiece' }],
   },

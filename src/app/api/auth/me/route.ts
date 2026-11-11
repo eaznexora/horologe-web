@@ -49,6 +49,29 @@ export async function GET() {
       );
     }
 
+    if (user.status === 'blocked') {
+      return NextResponse.json(
+        {
+          success: false,
+          blocked: true,
+          message: 'Vault privileges suspended',
+          appeal: user.appealMessage || null,
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            status: user.status,
+            blockReason: user.blockReason,
+            blockedAt: user.blockedAt,
+            appealMessage: user.appealMessage,
+          },
+        },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({ success: true, user });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Authentication failed';

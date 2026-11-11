@@ -55,6 +55,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Verify collector governance status (Block check)
+    if (authenticatedUserId) {
+      const existingUser = await User.findById(authenticatedUserId);
+      if (existingUser && existingUser.status === 'blocked') {
+        return NextResponse.json(
+          { success: false, error: 'Your collector privileges have been suspended by the Salon Directorate. Timepiece reservations are locked.' },
+          { status: 403 }
+        );
+      }
+    } else if (customerSnapshot?.email) {
+      const existingUser = await User.findOne({ email: customerSnapshot.email.toLowerCase().trim() });
+      if (existingUser && existingUser.status === 'blocked') {
+        return NextResponse.json(
+          { success: false, error: 'This collector account has been suspended by the Salon Directorate. Timepiece reservations are locked.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Generate bespoke order reference
     const timestampStr = Date.now().toString(36).toUpperCase();
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);

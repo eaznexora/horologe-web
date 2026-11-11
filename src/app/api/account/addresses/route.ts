@@ -26,12 +26,19 @@ export async function GET() {
     }
 
     await connectToDatabase();
-    const user = await User.findById(userId).select('addresses').lean();
+    const user = await User.findById(userId).select('addresses status').lean();
 
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'User profile not found' },
         { status: 404 }
+      );
+    }
+
+    if (user.status === 'blocked') {
+      return NextResponse.json(
+        { success: false, error: 'Your vault privileges have been suspended by the Salon Directorate.' },
+        { status: 403 }
       );
     }
 
@@ -85,6 +92,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'User profile not found' },
         { status: 404 }
+      );
+    }
+
+    if (user.status === 'blocked') {
+      return NextResponse.json(
+        { success: false, error: 'Your vault privileges have been suspended by the Salon Directorate.' },
+        { status: 403 }
       );
     }
 
@@ -173,6 +187,13 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    if (user.status === 'blocked') {
+      return NextResponse.json(
+        { success: false, error: 'Your vault privileges have been suspended by the Salon Directorate.' },
+        { status: 403 }
+      );
+    }
+
     const targetAddr = user.addresses.find(
       (a) => String(a._id) === String(addressId)
     );
@@ -254,6 +275,13 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'User profile not found' },
         { status: 404 }
+      );
+    }
+
+    if (user.status === 'blocked') {
+      return NextResponse.json(
+        { success: false, error: 'Your vault privileges have been suspended by the Salon Directorate.' },
+        { status: 403 }
       );
     }
 

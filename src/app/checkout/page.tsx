@@ -1,19 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
   Truck,
   Headphones,
   Check,
-  ChevronRight,
-  Lock,
   ArrowRight,
   Package,
-  Building,
   CreditCard,
   CheckCircle2,
   Loader2,
@@ -24,11 +21,7 @@ import Footer from "@/components/Footer";
 
 // Currency Formatter for INR
 function formatINR(val: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(val);
+  return "₹" + val.toLocaleString("en-IN");
 }
 
 interface TimepieceCheckoutItem {
@@ -58,7 +51,6 @@ interface SavedAddress {
 }
 
 function CheckoutContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const slugParam = searchParams.get("slug");
 
@@ -80,9 +72,9 @@ function CheckoutContent() {
   const [addressPostalCode, setAddressPostalCode] = useState("400001");
   const [addressCountry, setAddressCountry] = useState("India");
 
-  // State: Logistics & Payment
-  const [deliveryOption, setDeliveryOption] = useState<"courier" | "boutique">("courier");
-  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "wire">("razorpay");
+  // State: Dedicated Logistics & Payment (Streamlined Single Options)
+  const deliveryOption = "courier";
+  const paymentMethod = "razorpay";
 
   // State: Timepiece Item
   const [timepiece, setTimepiece] = useState<TimepieceCheckoutItem | null>(null);
@@ -98,9 +90,20 @@ function CheckoutContent() {
     async function loadUser() {
       try {
         const res = await fetch("/api/auth/me");
+        if (res.status === 403) {
+          const data = await res.json();
+          if (data.blocked) {
+            setFormError("Your vault privileges have been suspended by the Salon Directorate. Timepiece reservations are locked.");
+            return;
+          }
+        }
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.user) {
+            if (data.user.status === 'blocked') {
+              setFormError("Your vault privileges have been suspended by the Salon Directorate. Timepiece reservations are locked.");
+              return;
+            }
             setUser(data.user);
             setContactName(data.user.name || "");
             setContactEmail(data.user.email || "");
@@ -117,14 +120,14 @@ function CheckoutContent() {
         } else {
           setIsAddingNewAddress(true);
         }
-      } catch (err) {
+      } catch {
         setIsAddingNewAddress(true);
       }
     }
     loadUser();
   }, []);
 
-  // 2. Fetch Timepiece by slug or fallback to cart
+  // 2. Fetch Timepiece by slug or fallback to bag
   useEffect(() => {
     async function loadTimepiece() {
       setIsLoadingTimepiece(true);
@@ -201,7 +204,7 @@ function CheckoutContent() {
 
   // Financial Ledger Math
   const subtotal = timepiece?.price || 0;
-  // 3% Swiss Luxury Watch GST in India
+  // 3% Luxury Horology GST Rate in India
   const tax = Math.round(subtotal * 0.03);
   const totalAmount = subtotal + tax;
 
@@ -219,6 +222,10 @@ function CheckoutContent() {
     setFormError(null);
 
     // Validation
+    if (user?.status === 'blocked') {
+      setFormError("Your collector privileges have been suspended by the Salon Directorate. Timepiece acquisitions are locked.");
+      return;
+    }
     if (!contactName.trim()) {
       setFormError("Please provide your full legal name for authentication.");
       return;
@@ -285,9 +292,9 @@ function CheckoutContent() {
           totalAmount,
           currency: "INR",
         },
-        deliveryOption,
+        deliveryOption: "courier",
         paymentGateway: {
-          gateway: paymentMethod,
+          gateway: "razorpay",
           paymentStatus: "captured",
         },
       };
@@ -314,7 +321,7 @@ function CheckoutContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF6F0] text-[#2C241E] flex flex-col justify-between selection:bg-[#5C4529] selection:text-[#FAF6F0]">
+    <div className="min-h-screen bg-[#EDE5DA] text-[#2C241E] flex flex-col justify-between selection:bg-[#5C4529] selection:text-[#FAF6F0]">
       <Header />
 
       <main className="w-full flex-1 pt-28 sm:pt-32 lg:pt-36 pb-20 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto">
@@ -341,7 +348,7 @@ function CheckoutContent() {
 
         {/* Global Error Notice (Strict Zero-Red Policy) */}
         {formError && (
-          <div className="mb-6 p-4 bg-[#FAF7F2] border border-[#5C4529] text-xs text-[#5C4529] font-medium tracking-wide flex items-center gap-2.5 rounded-none animate-in fade-in">
+          <div className="mb-6 p-4 bg-[#EFE8DD]/80 border border-[#5C4529] text-xs text-[#5C4529] font-medium tracking-wide flex items-center gap-2.5 rounded-none animate-in fade-in">
             <span className="font-serif text-sm font-bold text-[#5C4529]">•</span>
             <span>{formError}</span>
           </div>
@@ -352,39 +359,40 @@ function CheckoutContent() {
           {/* ============================================================= */}
           {/* LEFT COLUMN: 4-STEP PROGRESSION ACCORDION (lg:col-span-8)     */}
           {/* ============================================================= */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8">
             {/* STEP 1: COLLECTOR CONTACT & VERIFICATION */}
-            <section className="bg-[#FAF7F2] border border-[#DFCFC0] rounded-none p-6 sm:p-7 shadow-xs">
-              <div className="flex items-center justify-between border-b border-[#DFCFC0]/80 pb-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-none bg-[#5C4529] text-[#FAF6F0] flex items-center justify-center text-xs font-semibold">
-                    1
-                  </span>
-                  <h2 className="font-serif text-xl sm:text-2xl text-[#2C241E]">
-                    Collector Contact & Verification
-                  </h2>
-                </div>
+            <section className="bg-[#FAF6F0] border border-[#DFCFC0] rounded-none p-6 sm:p-8 mb-6">
+              <span className="text-[11px] font-semibold tracking-[0.25em] uppercase text-[#8C6D46] mb-1.5 block">
+                STEP <span className="font-['Times_New_Roman',serif] text-xs">01</span>
+              </span>
+              <div className="flex items-center justify-between border-b border-[#DFCFC0] pb-3 mb-6">
+                <h2 className="font-serif text-2xl text-[#2C241E] uppercase tracking-wider">
+                  Collector Contact & Verification
+                </h2>
                 {user && (
-                  <span className="text-[10px] bg-[#EFE8DD] text-[#5C4529] border border-[#DFCFC0] px-2.5 py-1 uppercase tracking-widest font-semibold rounded-none">
+                  <span className="text-[10px] bg-[#EFE8DD] text-[#5C4529] border border-[#DFCFC0] px-3 py-1 uppercase tracking-widest font-semibold rounded-none">
                     Authenticated Patron
                   </span>
                 )}
               </div>
 
               {user ? (
-                <div className="bg-[#EFE8DD]/50 border border-[#DFCFC0] p-4 text-xs space-y-1 mb-2">
+                <div className="bg-[#EFE8DD]/70 border border-[#DFCFC0] p-4 text-xs space-y-1 mb-5 rounded-none">
                   <p className="font-semibold text-sm text-[#2C241E]">{user.name}</p>
                   <p className="text-[#6C5E52]">{user.email}</p>
-                  <p className="text-[#6C5E52] font-sans">
-                    Contact Tel: {user.phone || "Not recorded (add below)"}
+                  <p className="text-[#6C5E52]">
+                    Contact Tel:{" "}
+                    <span className="font-['Times_New_Roman',serif]">
+                      {user.phone || "Not recorded (add below)"}
+                    </span>
                   </p>
                 </div>
               ) : null}
 
-              {/* Input Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              {/* Input Fields strictly matching contact page */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] sm:text-[11px] font-medium tracking-[0.16em] uppercase text-[#7A6E63] mb-1.5">
+                  <label className="block text-[11px] font-medium tracking-[0.18em] uppercase text-[#7A6E63] mb-2">
                     FULL LEGAL NAME *
                   </label>
                   <input
@@ -393,12 +401,12 @@ function CheckoutContent() {
                     value={contactName}
                     onChange={(e) => setContactName(e.target.value)}
                     placeholder="e.g. Lord Charles Sterling"
-                    className="w-full bg-[#FAF6F0] border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-xs sm:text-sm outline-none transition-all"
+                    className="w-full bg-[#EFE8DD]/70 border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3.5 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-sm outline-none transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] sm:text-[11px] font-medium tracking-[0.16em] uppercase text-[#7A6E63] mb-1.5">
+                  <label className="block text-[11px] font-medium tracking-[0.18em] uppercase text-[#7A6E63] mb-2">
                     EMAIL ADDRESS (INSURED UPDATES) *
                   </label>
                   <input
@@ -407,12 +415,12 @@ function CheckoutContent() {
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
                     placeholder="sterling@royale.com"
-                    className="w-full bg-[#FAF6F0] border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-xs sm:text-sm outline-none transition-all"
+                    className="w-full bg-[#EFE8DD]/70 border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3.5 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-sm outline-none transition-all"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-[10px] sm:text-[11px] font-medium tracking-[0.16em] uppercase text-[#7A6E63] mb-1.5">
+                  <label className="block text-[11px] font-medium tracking-[0.18em] uppercase text-[#7A6E63] mb-2">
                     CONTACT TELEPHONE (ARMORED LOGISTICS ESCORT) *
                   </label>
                   <input
@@ -427,23 +435,21 @@ function CheckoutContent() {
                     }}
                     onKeyDown={handlePhoneKeyDown}
                     placeholder="+91 98765 43210"
-                    className="w-full bg-[#FAF6F0] border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-xs sm:text-sm outline-none transition-all"
+                    className="w-full bg-[#EFE8DD]/70 border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3.5 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-sm outline-none transition-all font-['Times_New_Roman',serif]"
                   />
                 </div>
               </div>
             </section>
 
             {/* STEP 2: ARMORED VAULT DELIVERY ADDRESS */}
-            <section className="bg-[#FAF7F2] border border-[#DFCFC0] rounded-none p-6 sm:p-7 shadow-xs">
-              <div className="flex items-center justify-between border-b border-[#DFCFC0]/80 pb-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-none bg-[#5C4529] text-[#FAF6F0] flex items-center justify-center text-xs font-semibold">
-                    2
-                  </span>
-                  <h2 className="font-serif text-xl sm:text-2xl text-[#2C241E]">
-                    Armored Vault Delivery Address
-                  </h2>
-                </div>
+            <section className="bg-[#FAF6F0] border border-[#DFCFC0] rounded-none p-6 sm:p-8 mb-6">
+              <span className="text-[11px] font-semibold tracking-[0.25em] uppercase text-[#8C6D46] mb-1.5 block">
+                STEP <span className="font-['Times_New_Roman',serif] text-xs">02</span>
+              </span>
+              <div className="flex items-center justify-between border-b border-[#DFCFC0] pb-3 mb-6">
+                <h2 className="font-serif text-2xl text-[#2C241E] uppercase tracking-wider">
+                  Armored Vault Delivery Address
+                </h2>
                 {savedAddresses.length > 0 && (
                   <button
                     type="button"
@@ -451,7 +457,7 @@ function CheckoutContent() {
                     className="text-xs uppercase tracking-wider font-semibold text-[#5C4529] hover:underline flex items-center gap-1 cursor-pointer"
                   >
                     <Plus size={13} />
-                    <span>{isAddingNewAddress ? "Use Saved Vault" : "New Address"}</span>
+                    <span>{isAddingNewAddress ? "Use Saved Vault" : "Add New Delivery Destination"}</span>
                   </button>
                 )}
               </div>
@@ -465,13 +471,13 @@ function CheckoutContent() {
                       <div
                         key={addr._id || idx}
                         onClick={() => setSelectedAddressIndex(idx)}
-                        className={`p-4 border transition-all cursor-pointer rounded-none relative ${
+                        className={`border rounded-none p-4 cursor-pointer transition-all relative ${
                           isSelected
-                            ? "border-[#5C4529] bg-[#EFE8DD]/70 shadow-xs"
+                            ? "border-[#5C4529] bg-[#EFE8DD]/70"
                             : "border-[#DFCFC0] bg-[#FAF6F0] hover:border-[#A89887]"
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center justify-between mb-2">
                           <span className="font-semibold text-xs text-[#2C241E] uppercase tracking-wider">
                             {addr.tag || "Vault Destination"}
                           </span>
@@ -482,50 +488,57 @@ function CheckoutContent() {
                           )}
                         </div>
                         <p className="text-xs text-[#2C241E] font-medium">{addr.name}</p>
-                        <p className="text-xs text-[#6C5E52] leading-relaxed mt-0.5">
+                        <p className="text-xs text-[#6C5E52] leading-relaxed mt-1">
                           {addr.line1}
                           {addr.line2 ? `, ${addr.line2}` : ""}
-                          <br />
-                          {addr.city}, {addr.state} - {addr.postalCode}
                         </p>
-                        <p className="text-[11px] text-[#7A6C5E] mt-1 font-sans">Tel: {addr.phone}</p>
+                        <p className="text-xs text-[#6C5E52]">
+                          {addr.city}, {addr.state}{" "}
+                          <span className="font-['Times_New_Roman',serif]">{addr.postalCode}</span>
+                        </p>
+                        <p className="text-xs text-[#6C5E52] mt-0.5">
+                          Tel:{" "}
+                          <span className="font-['Times_New_Roman',serif]">{addr.phone}</span>
+                        </p>
                       </div>
                     );
                   })}
                 </div>
-              ) : (
-                /* New Address Form */
+              ) : null}
+
+              {/* New Address Form */}
+              {(isAddingNewAddress || savedAddresses.length === 0) && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[10px] sm:text-[11px] font-medium tracking-[0.16em] uppercase text-[#7A6E63] mb-1.5">
-                      STREET ADDRESS (VAULT / RESIDENCE) *
+                    <label className="block text-[11px] font-medium tracking-[0.18em] uppercase text-[#7A6E63] mb-2">
+                      STREET ADDRESS (PRIVATE ENCLAVE / VAULT) *
                     </label>
                     <input
                       type="text"
                       required
                       value={addressLine1}
                       onChange={(e) => setAddressLine1(e.target.value)}
-                      placeholder="e.g. Penthouse 42B, Oberoi Sky City, Off Western Express"
-                      className="w-full bg-[#FAF6F0] border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-xs sm:text-sm outline-none transition-all"
+                      placeholder="e.g. 14A Altamount Road, Cumballa Hill"
+                      className="w-full bg-[#EFE8DD]/70 border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3.5 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-sm outline-none transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] sm:text-[11px] font-medium tracking-[0.16em] uppercase text-[#7A6E63] mb-1.5">
-                      APARTMENT, SUITE, OR LANDMARK (OPTIONAL)
+                    <label className="block text-[11px] font-medium tracking-[0.18em] uppercase text-[#7A6E63] mb-2">
+                      APARTMENT, SUITE, OR RESIDENCY WING (OPTIONAL)
                     </label>
                     <input
                       type="text"
                       value={addressLine2}
                       onChange={(e) => setAddressLine2(e.target.value)}
-                      placeholder="e.g. Near Royal Palms Pavilion"
-                      className="w-full bg-[#FAF6F0] border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-xs sm:text-sm outline-none transition-all"
+                      placeholder="Penthouse 4, East Wing"
+                      className="w-full bg-[#EFE8DD]/70 border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3.5 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-sm outline-none transition-all"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-[10px] sm:text-[11px] font-medium tracking-[0.16em] uppercase text-[#7A6E63] mb-1.5">
+                      <label className="block text-[11px] font-medium tracking-[0.18em] uppercase text-[#7A6E63] mb-2">
                         CITY *
                       </label>
                       <input
@@ -533,205 +546,143 @@ function CheckoutContent() {
                         required
                         value={addressCity}
                         onChange={(e) => setAddressCity(e.target.value)}
-                        className="w-full bg-[#FAF6F0] border border-[#DFCFC0] text-[#2C241E] rounded-none px-3.5 py-2.5 text-xs sm:text-sm outline-none focus:border-[#5C4529]"
+                        placeholder="Mumbai"
+                        className="w-full bg-[#EFE8DD]/70 border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3.5 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-sm outline-none transition-all"
                       />
                     </div>
+
                     <div>
-                      <label className="block text-[10px] sm:text-[11px] font-medium tracking-[0.16em] uppercase text-[#7A6E63] mb-1.5">
-                        STATE *
+                      <label className="block text-[11px] font-medium tracking-[0.18em] uppercase text-[#7A6E63] mb-2">
+                        STATE / EMIRATE *
                       </label>
                       <input
                         type="text"
                         required
                         value={addressState}
                         onChange={(e) => setAddressState(e.target.value)}
-                        className="w-full bg-[#FAF6F0] border border-[#DFCFC0] text-[#2C241E] rounded-none px-3.5 py-2.5 text-xs sm:text-sm outline-none focus:border-[#5C4529]"
+                        placeholder="Maharashtra"
+                        className="w-full bg-[#EFE8DD]/70 border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3.5 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-sm outline-none transition-all"
                       />
                     </div>
+
                     <div>
-                      <label className="block text-[10px] sm:text-[11px] font-medium tracking-[0.16em] uppercase text-[#7A6E63] mb-1.5">
-                        PIN CODE *
+                      <label className="block text-[11px] font-medium tracking-[0.18em] uppercase text-[#7A6E63] mb-2">
+                        PIN / POSTAL CODE *
                       </label>
                       <input
                         type="text"
                         required
                         value={addressPostalCode}
                         onChange={(e) => setAddressPostalCode(e.target.value)}
-                        className="w-full bg-[#FAF6F0] border border-[#DFCFC0] text-[#2C241E] rounded-none px-3.5 py-2.5 text-xs sm:text-sm outline-none focus:border-[#5C4529]"
+                        placeholder="400001"
+                        className="w-full bg-[#EFE8DD]/70 border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3.5 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-sm outline-none transition-all font-['Times_New_Roman',serif]"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] sm:text-[11px] font-medium tracking-[0.16em] uppercase text-[#7A6E63] mb-1.5">
-                        COUNTRY *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={addressCountry}
-                        onChange={(e) => setAddressCountry(e.target.value)}
-                        className="w-full bg-[#FAF6F0] border border-[#DFCFC0] text-[#2C241E] rounded-none px-3.5 py-2.5 text-xs sm:text-sm outline-none focus:border-[#5C4529]"
-                      />
-                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium tracking-[0.18em] uppercase text-[#7A6E63] mb-2">
+                      COUNTRY / TERRITORY *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={addressCountry}
+                      onChange={(e) => setAddressCountry(e.target.value)}
+                      placeholder="India"
+                      className="w-full bg-[#EFE8DD]/70 border border-[#DFCFC0] text-[#2C241E] placeholder:text-[#A89887] rounded-none px-4 py-3.5 focus:border-[#5C4529] focus:ring-1 focus:ring-[#5C4529] text-sm outline-none transition-all"
+                    />
                   </div>
                 </div>
               )}
             </section>
 
             {/* STEP 3: BESPOKE LOGISTICS & DELIVERY OPTIONS */}
-            <section className="bg-[#FAF7F2] border border-[#DFCFC0] rounded-none p-6 sm:p-7 shadow-xs">
-              <div className="flex items-center gap-3 border-b border-[#DFCFC0]/80 pb-4 mb-5">
-                <span className="w-6 h-6 rounded-none bg-[#5C4529] text-[#FAF6F0] flex items-center justify-center text-xs font-semibold">
-                  3
-                </span>
-                <h2 className="font-serif text-xl sm:text-2xl text-[#2C241E]">
+            <section className="bg-[#FAF6F0] border border-[#DFCFC0] rounded-none p-6 sm:p-8 mb-6">
+              <span className="text-[11px] font-semibold tracking-[0.25em] uppercase text-[#8C6D46] mb-1.5 block">
+                STEP <span className="font-['Times_New_Roman',serif] text-xs">03</span>
+              </span>
+              <div className="border-b border-[#DFCFC0] pb-3 mb-6">
+                <h2 className="font-serif text-2xl text-[#2C241E] uppercase tracking-wider">
                   Bespoke Logistics & Delivery Options
                 </h2>
               </div>
 
               <div className="space-y-3">
-                {/* Courier Option */}
-                <div
-                  onClick={() => setDeliveryOption("courier")}
-                  className={`p-4 border transition-all cursor-pointer rounded-none flex items-start justify-between gap-4 ${
-                    deliveryOption === "courier"
-                      ? "border-[#5C4529] bg-[#EFE8DD]/70 shadow-xs"
-                      : "border-[#DFCFC0] bg-[#FAF6F0] hover:border-[#A89887]"
-                  }`}
-                >
+                {/* Sole Active Option: Insured Armored Courier */}
+                <div className="border border-[#5C4529] bg-[#EFE8DD]/70 rounded-none p-4 flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3.5">
                     <div className="w-8 h-8 rounded-none bg-[#5C4529] text-[#FAF6F0] flex items-center justify-center shrink-0 mt-0.5">
                       <Truck size={16} />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs sm:text-sm text-[#2C241E] uppercase tracking-wide">
-                          Insured Armored Courier (Malca-Amit / Ferrari Group)
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#6C5E52] mt-0.5 leading-relaxed">
-                        Hand-to-hand encrypted handover with dedicated armed escort & tamper-evident vault packaging.
+                      <span className="font-semibold text-xs sm:text-sm text-[#2C241E] uppercase tracking-wide block">
+                        Insured Armored Courier (Malca-Amit / Ferrari Group)
+                      </span>
+                      <p className="text-xs text-[#6C5E52] mt-1 leading-relaxed">
+                        Dedicated door-to-door transit with armed courier security and full transit coverage.
                       </p>
                     </div>
                   </div>
-                  <span className="text-[11px] font-semibold tracking-wider uppercase text-[#5C4529] bg-white/70 border border-[#DFCFC0] px-2.5 py-1 shrink-0 rounded-none">
-                    COMPLIMENTARY
-                  </span>
-                </div>
-
-                {/* Boutique Option */}
-                <div
-                  onClick={() => setDeliveryOption("boutique")}
-                  className={`p-4 border transition-all cursor-pointer rounded-none flex items-start justify-between gap-4 ${
-                    deliveryOption === "boutique"
-                      ? "border-[#5C4529] bg-[#EFE8DD]/70 shadow-xs"
-                      : "border-[#DFCFC0] bg-[#FAF6F0] hover:border-[#A89887]"
-                  }`}
-                >
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-8 h-8 rounded-none bg-[#2C241E] text-[#FAF6F0] flex items-center justify-center shrink-0 mt-0.5">
-                      <Building size={16} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs sm:text-sm text-[#2C241E] uppercase tracking-wide">
-                          Private Boutique Handover (Kala Ghoda Atelier, Mumbai)
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#6C5E52] mt-0.5 leading-relaxed">
-                        Personal appointment at our private salon with certified horologist champagne reception.
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span className="text-[11px] font-semibold tracking-wider uppercase text-[#5C4529] bg-[#EFE8DD] border border-[#DFCFC0] px-3 py-1 rounded-none">
+                      COMPLIMENTARY
+                    </span>
+                    <span className="w-4 h-4 bg-[#5C4529] text-white flex items-center justify-center rounded-none text-[10px]">
+                      <Check size={11} strokeWidth={3} />
+                    </span>
                   </div>
-                  <span className="text-[11px] font-semibold tracking-wider uppercase text-[#5C4529] bg-white/70 border border-[#DFCFC0] px-2.5 py-1 shrink-0 rounded-none">
-                    COMPLIMENTARY
-                  </span>
                 </div>
               </div>
             </section>
 
             {/* STEP 4: SECURE PAYMENT GATEWAY */}
-            <section className="bg-[#FAF7F2] border border-[#DFCFC0] rounded-none p-6 sm:p-7 shadow-xs">
-              <div className="flex items-center gap-3 border-b border-[#DFCFC0]/80 pb-4 mb-5">
-                <span className="w-6 h-6 rounded-none bg-[#5C4529] text-[#FAF6F0] flex items-center justify-center text-xs font-semibold">
-                  4
-                </span>
-                <h2 className="font-serif text-xl sm:text-2xl text-[#2C241E]">
+            <section className="bg-[#FAF6F0] border border-[#DFCFC0] rounded-none p-6 sm:p-8 mb-6">
+              <span className="text-[11px] font-semibold tracking-[0.25em] uppercase text-[#8C6D46] mb-1.5 block">
+                STEP <span className="font-['Times_New_Roman',serif] text-xs">04</span>
+              </span>
+              <div className="border-b border-[#DFCFC0] pb-3 mb-6">
+                <h2 className="font-serif text-2xl text-[#2C241E] uppercase tracking-wider">
                   Secure Payment Gateway
                 </h2>
               </div>
 
-              <div className="space-y-3 mb-5">
-                {/* Razorpay Smart Collect */}
-                <div
-                  onClick={() => setPaymentMethod("razorpay")}
-                  className={`p-4 border transition-all cursor-pointer rounded-none flex items-start justify-between gap-4 ${
-                    paymentMethod === "razorpay"
-                      ? "border-[#5C4529] bg-[#EFE8DD]/70 shadow-xs"
-                      : "border-[#DFCFC0] bg-[#FAF6F0] hover:border-[#A89887]"
-                  }`}
-                >
+              <div className="space-y-3 mb-6">
+                {/* Sole Active Gateway: Razorpay Smart Collect */}
+                <div className="border border-[#5C4529] bg-[#EFE8DD]/70 rounded-none p-4 flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3.5">
                     <div className="w-8 h-8 rounded-none bg-[#5C4529] text-[#FAF6F0] flex items-center justify-center shrink-0 mt-0.5">
                       <CreditCard size={16} />
                     </div>
                     <div>
                       <span className="font-semibold text-xs sm:text-sm text-[#2C241E] uppercase tracking-wide block">
-                        Razorpay Smart Collect (Cards, UPI, NetBanking, Luxury EMI)
+                        Razorpay Smart Collect
                       </span>
-                      <p className="text-xs text-[#6C5E52] mt-0.5 leading-relaxed">
-                        Instant 256-bit encrypted card clearance with tokenized Swiss compliance.
+                      <p className="text-xs text-[#6C5E52] mt-1 leading-relaxed">
+                        Instant automated settlement via Credit/Debit Cards, UPI, NetBanking, or Luxury EMI.
                       </p>
                     </div>
                   </div>
-                  {paymentMethod === "razorpay" && (
-                    <span className="w-4 h-4 bg-[#5C4529] text-white flex items-center justify-center rounded-none text-[10px] shrink-0">
-                      <Check size={11} strokeWidth={3} />
-                    </span>
-                  )}
-                </div>
-
-                {/* Private Wire Option */}
-                <div
-                  onClick={() => setPaymentMethod("wire")}
-                  className={`p-4 border transition-all cursor-pointer rounded-none flex items-start justify-between gap-4 ${
-                    paymentMethod === "wire"
-                      ? "border-[#5C4529] bg-[#EFE8DD]/70 shadow-xs"
-                      : "border-[#DFCFC0] bg-[#FAF6F0] hover:border-[#A89887]"
-                  }`}
-                >
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-8 h-8 rounded-none bg-[#2C241E] text-[#FAF6F0] flex items-center justify-center shrink-0 mt-0.5">
-                      <Lock size={16} />
-                    </div>
-                    <div>
-                      <span className="font-semibold text-xs sm:text-sm text-[#2C241E] uppercase tracking-wide block">
-                        Direct Private Wire Transfer / Armored Escrow
-                      </span>
-                      <p className="text-xs text-[#6C5E52] mt-0.5 leading-relaxed">
-                        Bank wire instructions delivered with bank guarantee escrow hold.
-                      </p>
-                    </div>
-                  </div>
-                  {paymentMethod === "wire" && (
-                    <span className="w-4 h-4 bg-[#5C4529] text-white flex items-center justify-center rounded-none text-[10px] shrink-0">
-                      <Check size={11} strokeWidth={3} />
-                    </span>
-                  )}
+                  <span className="w-4 h-4 bg-[#5C4529] text-white flex items-center justify-center rounded-none text-[10px] shrink-0">
+                    <Check size={11} strokeWidth={3} />
+                  </span>
                 </div>
               </div>
 
               {/* Trust Badges */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-3 border-t border-[#DFCFC0]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-[#DFCFC0]">
                 <div className="flex items-center gap-2 text-xs text-[#6C5E52]">
-                  <ShieldCheck size={14} className="text-[#5C4529] shrink-0" />
-                  <span>256-Bit Encrypted Vault</span>
+                  <ShieldCheck size={15} className="text-[#5C4529] shrink-0" />
+                  <span>
+                    <span className="font-['Times_New_Roman',serif]">256</span>-Bit Encrypted Vault
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-[#6C5E52]">
-                  <CheckCircle2 size={14} className="text-[#5C4529] shrink-0" />
+                  <CheckCircle2 size={15} className="text-[#5C4529] shrink-0" />
                   <span>Authenticity Guaranteed</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-[#6C5E52]">
-                  <Package size={14} className="text-[#5C4529] shrink-0" />
+                  <Package size={15} className="text-[#5C4529] shrink-0" />
                   <span>Transit Insurance Included</span>
                 </div>
               </div>
@@ -742,11 +693,13 @@ function CheckoutContent() {
           {/* RIGHT COLUMN: STICKY ORDER DOSSIER & LEDGER (lg:col-span-4)   */}
           {/* ============================================================= */}
           <aside className="lg:col-span-4 sticky top-28 space-y-6">
-            <div className="bg-[#FAF6F0] border border-[#DFCFC0] rounded-none p-6 sm:p-7 shadow-sm">
-              <span className="text-[10px] tracking-[0.22em] font-semibold text-[#8C7A6B] uppercase block mb-1.5">
-                Acquisition Dossier
+            <div className="bg-[#FAF6F0] border border-[#DFCFC0] rounded-none p-6 sm:p-8">
+              <span className="text-[11px] font-semibold tracking-[0.25em] uppercase text-[#8C6D46] mb-1.5 block">
+                ACQUISITION DOSSIER
               </span>
-              <h3 className="font-serif text-2xl text-[#2C241E] mb-5">Order Summary</h3>
+              <h3 className="font-serif text-2xl text-[#2C241E] uppercase tracking-wider mb-6">
+                Order Summary
+              </h3>
 
               {/* Timepiece Item Card */}
               {isLoadingTimepiece ? (
@@ -759,7 +712,7 @@ function CheckoutContent() {
               ) : timepiece ? (
                 <div className="pb-5 border-b border-[#DFCFC0] mb-5">
                   <div className="flex gap-4 items-start">
-                    <div className="w-20 h-20 bg-[#F5EFE6] border border-[#E0D5C7] rounded-none shrink-0 overflow-hidden relative">
+                    <div className="w-20 h-20 bg-[#F5EFE6] border border-[#DFCFC0] rounded-none shrink-0 overflow-hidden relative">
                       <Image
                         src={timepiece.image}
                         alt={timepiece.name}
@@ -775,13 +728,13 @@ function CheckoutContent() {
                         {timepiece.name}
                       </h4>
                       <p className="text-[11px] text-[#7A6C5E] font-mono mt-0.5 truncate">
-                        Ref: {timepiece.reference}
+                        Ref: <span className="font-['Times_New_Roman',serif]">{timepiece.reference}</span>
                       </p>
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="text-[10px] bg-[#EFE8DD] text-[#5C4529] px-2 py-0.5 rounded-none font-medium uppercase tracking-wider">
+                        <span className="text-[10px] bg-[#EFE8DD] text-[#5C4529] border border-[#DFCFC0] px-2 py-0.5 rounded-none font-medium uppercase tracking-wider">
                           {timepiece.conditionBadge || "Certified"}
                         </span>
-                        <span className="font-serif text-sm font-semibold text-[#2C241E]">
+                        <span className="font-['Times_New_Roman',serif] tracking-tight text-base font-semibold text-[#2C241E]">
                           {formatINR(timepiece.price)}
                         </span>
                       </div>
@@ -798,10 +751,12 @@ function CheckoutContent() {
               )}
 
               {/* Financial Ledger */}
-              <div className="space-y-3 text-xs mb-6">
+              <div className="space-y-3.5 text-xs mb-6">
                 <div className="flex justify-between text-[#6C5E52]">
                   <span>Timepiece Subtotal</span>
-                  <span className="font-mono text-[#2C241E] font-medium">{formatINR(subtotal)}</span>
+                  <span className="font-['Times_New_Roman',serif] text-sm text-[#2C241E] font-medium">
+                    {formatINR(subtotal)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-[#6C5E52]">
                   <span>Insured Priority Armored Transit</span>
@@ -810,10 +765,12 @@ function CheckoutContent() {
                   </span>
                 </div>
                 <div className="flex justify-between text-[#6C5E52]">
-                  <span>GST (3% Luxury Horology Rate)</span>
-                  <span className="font-mono text-[#2C241E] font-medium">{formatINR(tax)}</span>
+                  <span>GST (<span className="font-['Times_New_Roman',serif]">3%</span> Luxury Horology Rate)</span>
+                  <span className="font-['Times_New_Roman',serif] text-sm text-[#2C241E] font-medium">
+                    {formatINR(tax)}
+                  </span>
                 </div>
-                <div className="border-t border-[#DFCFC0] pt-3 flex justify-between items-baseline">
+                <div className="border-t border-[#DFCFC0] pt-3.5 flex justify-between items-baseline">
                   <div>
                     <span className="font-serif text-base text-[#2C241E] font-semibold block">
                       Total Investment
@@ -822,18 +779,18 @@ function CheckoutContent() {
                       All taxes & transit insurance included
                     </span>
                   </div>
-                  <span className="font-serif text-2xl font-semibold text-[#2C241E]">
+                  <span className="font-['Times_New_Roman',serif] font-medium text-2xl text-[#2C241E]">
                     {formatINR(totalAmount)}
                   </span>
                 </div>
               </div>
 
-              {/* Primary CTA Submit Button */}
+              {/* Primary Action Button */}
               <button
                 type="button"
                 disabled={isSubmitting || !timepiece}
                 onClick={handleProceedToPayment}
-                className="w-full bg-[#5C4529] hover:bg-[#47341D] text-[#FAF6F0] py-4 rounded-none text-xs tracking-[0.2em] uppercase font-semibold transition-all cursor-pointer shadow-none active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+                className="w-full bg-[#5C4529] hover:bg-[#47341D] text-[#FAF6F0] rounded-none py-4 px-6 text-xs tracking-[0.2em] uppercase font-semibold transition-all cursor-pointer shadow-none active:scale-[0.99] mt-6 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>
@@ -853,39 +810,39 @@ function CheckoutContent() {
             </div>
 
             {/* Trust Pillars Card */}
-            <div className="bg-[#FAF7F2] border border-[#DFCFC0] rounded-none p-5 text-xs space-y-3.5 shadow-2xs">
-              <div className="flex items-start gap-3">
+            <div className="bg-[#FAF6F0] border border-[#DFCFC0] rounded-none p-6 text-xs space-y-4">
+              <div className="flex items-start gap-3.5">
                 <ShieldCheck size={18} className="text-[#5C4529] shrink-0 mt-0.5" />
                 <div>
                   <h5 className="font-semibold text-[#2C241E] uppercase tracking-wider text-[11px]">
                     Verified Swiss Provenance
                   </h5>
-                  <p className="text-[#7A6C5E] mt-0.5 leading-relaxed text-[11px]">
-                    Every timepiece passes a 48-point mechanical inspection and certificate authenticity check.
+                  <p className="text-[#7A6C5E] mt-1 leading-relaxed text-[11px]">
+                    Every timepiece passes a <span className="font-['Times_New_Roman',serif]">48</span>-point mechanical inspection and certificate authenticity check.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3.5">
                 <Truck size={18} className="text-[#5C4529] shrink-0 mt-0.5" />
                 <div>
                   <h5 className="font-semibold text-[#2C241E] uppercase tracking-wider text-[11px]">
-                    100% Insured Armored Transit
+                    <span className="font-['Times_New_Roman',serif]">100%</span> Insured Armored Transit
                   </h5>
-                  <p className="text-[#7A6C5E] mt-0.5 leading-relaxed text-[11px]">
+                  <p className="text-[#7A6C5E] mt-1 leading-relaxed text-[11px]">
                     Full value insured transit underwritten by Lloyd&apos;s of London until physical handover.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3.5">
                 <Headphones size={18} className="text-[#5C4529] shrink-0 mt-0.5" />
                 <div>
                   <h5 className="font-semibold text-[#2C241E] uppercase tracking-wider text-[11px]">
                     Concierge White-Glove Support
                   </h5>
-                  <p className="text-[#7A6C5E] mt-0.5 leading-relaxed text-[11px]">
-                    Private horologist on call 24/7 for delivery coordination and provenance dossier questions.
+                  <p className="text-[#7A6C5E] mt-1 leading-relaxed text-[11px]">
+                    Private horologist on call <span className="font-['Times_New_Roman',serif]">24/7</span> for delivery coordination and provenance dossier questions.
                   </p>
                 </div>
               </div>
@@ -897,46 +854,46 @@ function CheckoutContent() {
         {/* ORDER CONFIRMATION MODAL                                      */}
         {/* ============================================================= */}
         {confirmedOrder && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-50 bg-[#2C241E]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-[#FAF6F0] border border-[#DFCFC0] rounded-none max-w-xl w-full p-6 sm:p-8 shadow-2xl relative">
               <div className="text-center">
-                <div className="w-14 h-14 rounded-none bg-[#5C4529] text-[#FAF6F0] flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <div className="w-14 h-14 rounded-none bg-[#5C4529] text-[#FAF6F0] flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 size={32} />
                 </div>
-                <span className="text-[10px] tracking-[0.25em] font-semibold text-[#8C7A6B] uppercase block mb-1">
-                  Private Vault Allocation
+                <span className="text-[11px] font-semibold tracking-[0.25em] uppercase text-[#8C6D46] block mb-1.5">
+                  PRIVATE VAULT ALLOCATION
                 </span>
-                <h3 className="font-serif text-2xl sm:text-3xl text-[#2C241E] mb-2 font-normal">
+                <h3 className="font-serif text-2xl sm:text-3xl text-[#2C241E] mb-2 uppercase tracking-wider">
                   Acquisition Reserved
                 </h3>
-                <p className="text-xs sm:text-sm text-[#7A6C5E] font-light max-w-md mx-auto leading-relaxed mb-6">
+                <p className="text-xs sm:text-sm text-[#7A6C5E] font-light max-w-md mx-auto leading-relaxed mb-6 font-sans">
                   Your certified timepiece reservation has been recorded in the Horologe Royale Ledger.
                 </p>
 
                 {/* Order Summary Box */}
-                <div className="bg-white/80 border border-[#DFCFC0] p-4 text-left text-xs mb-6 space-y-2">
+                <div className="bg-[#EFE8DD]/70 border border-[#DFCFC0] p-4 text-left text-xs mb-6 space-y-2.5 rounded-none font-sans">
                   <div className="flex justify-between border-b border-[#DFCFC0] pb-2">
-                    <span className="text-[#8C7A6B] uppercase tracking-wider">Order Reference</span>
-                    <span className="font-mono font-semibold text-[#2C241E]">
+                    <span className="text-[#8C7A6B] uppercase tracking-wider text-[11px]">Order Reference</span>
+                    <span className="font-['Times_New_Roman',serif] font-semibold text-[#2C241E]">
                       {confirmedOrder.orderNumber}
                     </span>
                   </div>
                   <div className="flex justify-between border-b border-[#DFCFC0] pb-2">
-                    <span className="text-[#8C7A6B] uppercase tracking-wider">Client</span>
+                    <span className="text-[#8C7A6B] uppercase tracking-wider text-[11px]">Client</span>
                     <span className="font-medium text-[#2C241E]">
                       {confirmedOrder.customerSnapshot?.name}
                     </span>
                   </div>
                   <div className="flex justify-between border-b border-[#DFCFC0] pb-2">
-                    <span className="text-[#8C7A6B] uppercase tracking-wider">Total Investment</span>
-                    <span className="font-serif font-semibold text-[#2C241E] text-sm">
+                    <span className="text-[#8C7A6B] uppercase tracking-wider text-[11px]">Total Investment</span>
+                    <span className="font-['Times_New_Roman',serif] font-medium text-base text-[#2C241E]">
                       {formatINR(confirmedOrder.financials?.totalAmount || totalAmount)}
                     </span>
                   </div>
                   <div className="flex justify-between pt-1">
-                    <span className="text-[#8C7A6B] uppercase tracking-wider">Delivery Mode</span>
+                    <span className="text-[#8C7A6B] uppercase tracking-wider text-[11px]">Delivery Mode</span>
                     <span className="font-medium text-[#5C4529]">
-                      {deliveryOption === "courier" ? "Insured Armored Courier" : "Boutique Handover"}
+                      Insured Armored Courier (Malca-Amit / Ferrari Group)
                     </span>
                   </div>
                 </div>
@@ -945,13 +902,13 @@ function CheckoutContent() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link
                     href="/account?tab=orders"
-                    className="flex-1 bg-[#5C4529] hover:bg-[#47341D] text-[#FAF6F0] py-3.5 text-xs font-semibold uppercase tracking-widest text-center transition-colors rounded-none"
+                    className="flex-1 bg-[#5C4529] hover:bg-[#47341D] text-[#FAF6F0] py-4 text-xs font-semibold uppercase tracking-[0.2em] text-center transition-colors rounded-none"
                   >
                     View Private Vault Ledger →
                   </Link>
                   <Link
                     href="/collections"
-                    className="flex-1 border border-[#DFCFC0] hover:bg-white text-[#2C241E] py-3.5 text-xs font-semibold uppercase tracking-widest text-center transition-colors rounded-none"
+                    className="flex-1 border border-[#DFCFC0] hover:bg-[#EFE8DD]/50 text-[#2C241E] py-4 text-xs font-semibold uppercase tracking-[0.2em] text-center transition-colors rounded-none"
                   >
                     Continue Exploring
                   </Link>
@@ -971,7 +928,7 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#FAF6F0] flex items-center justify-center">
+        <div className="min-h-screen bg-[#EDE5DA] flex items-center justify-center">
           <Loader2 size={32} className="animate-spin text-[#5C4529]" />
         </div>
       }
@@ -980,4 +937,3 @@ export default function CheckoutPage() {
     </Suspense>
   );
 }
-

@@ -11,6 +11,7 @@ import ClientOrdersView from "@/components/account/ClientOrdersView";
 import ClientAddressesView from "@/components/account/ClientAddressesView";
 import ClientWishlistView from "@/components/account/ClientWishlistView";
 import ClientSettingsView from "@/components/account/ClientSettingsView";
+import SuspendedVaultDesk from "@/components/account/SuspendedVaultDesk";
 
 export type AccountTab =
   | "profile"
@@ -37,47 +38,69 @@ function AccountPageContent() {
 
   // Authentication gate state
   const [user, setUser] = useState<any>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Verify collector session
+  // Centralized session verification function
+  async function verifySession() {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+
+      // Catch 403 status OR blocked payload
+      if (res.status === 403 || data.blocked || data.user?.status === "blocked") {
+        setIsBlocked(true);
+        setUser(data.user || null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!res.ok || !data.success) {
+        router.replace("/login?redirect=/account");
+        return;
+      }
+
+      // Active User
+      setIsBlocked(false);
+      setUser(data.user);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Session verification error:", err);
+      router.replace("/login?redirect=/account");
+    }
+  }
+
+  // Trigger on Mount AND Window Focus
   useEffect(() => {
     let isMounted = true;
 
     // Safety timeout: Never hang on spinner for more than 3.5 seconds
     const safetyTimer = setTimeout(() => {
-      if (isMounted && isLoading) {
-        router.replace("/login?redirect=/account");
+      if (isMounted) {
+        setIsLoading((loading) => {
+          if (loading) {
+            router.replace("/login?redirect=/account");
+          }
+          return loading;
+        });
       }
     }, 3500);
 
-    async function checkAuth() {
-      try {
-        const res = await fetch("/api/auth/me");
-        if (!res.ok) {
-          router.replace("/login?redirect=/account");
-          return;
-        }
-        const data = await res.json();
-        if (data.success && data.user) {
-          if (isMounted) {
-            setUser(data.user);
-            setIsLoading(false);
-          }
-        } else {
-          router.replace("/login?redirect=/account");
-        }
-      } catch (err) {
-        console.error("Auth verification error:", err);
-        router.replace("/login?redirect=/account");
-      }
-    }
+    verifySession();
 
-    checkAuth();
+    // Re-verify immediately when user tabs back into the window
+    const handleFocus = () => {
+      verifySession();
+    };
+
+    window.addEventListener("focus", handleFocus);
     return () => {
       isMounted = false;
       clearTimeout(safetyTimer);
+      window.removeEventListener("focus", handleFocus);
     };
-  }, [router, isLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Read active tab directly from URL query string or default to 'profile'
   const tabFromUrl = searchParams.get("tab");
@@ -103,17 +126,7 @@ function AccountPageContent() {
   };
 
   const refreshUser = async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.user) {
-          setUser(data.user);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to refresh user:", err);
-    }
+    await verifySession();
   };
 
   const handleLogOut = async () => {
@@ -133,6 +146,25 @@ function AccountPageContent() {
           Verifying Vault Access...
         </span>
       </div>
+    );
+  }
+
+  // Render Suspended Vault Desk with Appeal Form if collector is blocked
+  if (isBlocked) {
+    return (
+      <SuspendedVaultDesk
+        user={
+          user || {
+            name: "Privileged Patron",
+            email: "",
+            blockReason: "Administrative review and portfolio verification in progress.",
+          }
+        }
+        onLogOut={handleLogOut}
+        onAppealSubmitted={(newAppeal) => {
+          setUser((prev: any) => (prev ? { ...prev, appealMessage: newAppeal } : prev));
+        }}
+      />
     );
   }
 

@@ -77,6 +77,10 @@ export async function GET(req: NextRequest) {
         ...u,
         phone: resolvedPhone,
         ordersCount: Math.max(byId, byEmail),
+        status: u.status || 'active',
+        blockedAt: u.blockedAt || null,
+        blockReason: u.blockReason || '',
+        appealMessage: u.appealMessage || { message: '', submittedAt: null, status: 'none' },
       };
     });
 
@@ -104,20 +108,48 @@ export async function PATCH(req: NextRequest) {
     await connectToDatabase();
 
     const body = await req.json();
-    const { userId, role } = body;
+    const { userId, action, reason, role } = body;
 
-    if (!userId || !role || !['customer', 'admin'].includes(role)) {
+    if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'Valid userId and role ("customer" | "admin") are required' },
+        { success: false, error: 'Collector userId is required' },
         { status: 400 }
       );
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $set: { role } },
-      { new: true }
-    )
+    let updateQuery: Record<string, unknown> = {};
+
+    if (action === 'block') {
+      updateQuery = {
+        $set: {
+          status: 'blocked',
+          blockedAt: new Date(),
+          blockReason: reason?.trim() || 'Administrative sanction by Salon Directorate',
+        },
+      };
+    } else if (action === 'unblock') {
+      updateQuery = {
+        $set: {
+          status: 'active',
+          blockReason: '',
+          'appealMessage.status': 'reviewed',
+        },
+        $unset: {
+          blockedAt: 1,
+        },
+      };
+    } else if (role && ['customer', 'admin'].includes(role)) {
+      updateQuery = {
+        $set: { role },
+      };
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'Valid action ("block" | "unblock") or role ("customer" | "admin") is required' },
+        { status: 400 }
+      );
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updateQuery, { new: true })
       .select('-passwordHash')
       .lean();
 
@@ -130,11 +162,57 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      message: action === 'block' ? 'Collector privileges suspended' : action === 'unblock' ? 'Collector privileges reinstated' : 'Role updated successfully',
       user: updatedUser,
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update collector role';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update collector record';
     console.error('[API_ADMIN_USERS_PATCH_ERROR]:', error);
+    return NextResponse.json(
+      { success: false, error: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    await connectToDatabase();
+    const { searchParams } = new URL(req.url);
+    let userId = searchParams.get('id');
+
+    if (!userId) {
+      try {
+        const body = await req.json();
+        userId = body.userId || body.id;
+      } catch {
+        // query param is primary
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Collector ID is required for deletion' },
+        { status: 400 }
+      );
+    }
+
+    const deleted = await User.findByIdAndDelete(userId);
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, error: 'Collector not found in database' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Collector record deleted successfully',
+      deletedId: userId,
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete collector record';
+    console.error('[API_ADMIN_USERS_DELETE_ERROR]:', error);
     return NextResponse.json(
       { success: false, error: errorMessage },
       { status: 500 }

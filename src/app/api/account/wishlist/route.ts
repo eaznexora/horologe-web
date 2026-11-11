@@ -46,6 +46,13 @@ export async function GET() {
       );
     }
 
+    if (user.status === 'blocked') {
+      return NextResponse.json(
+        { success: false, error: 'Your vault privileges have been suspended by the Salon Directorate.' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       wishlist: user.wishlist || [],
@@ -96,6 +103,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Collector profile not found' },
         { status: 404 }
+      );
+    }
+
+    if (user.status === 'blocked') {
+      return NextResponse.json(
+        { success: false, error: 'Your vault privileges have been suspended by the Salon Directorate.' },
+        { status: 403 }
       );
     }
 

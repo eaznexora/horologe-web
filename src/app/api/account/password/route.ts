@@ -45,6 +45,13 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    if (user.status === 'blocked') {
+      return NextResponse.json(
+        { success: false, error: 'Your vault privileges have been suspended by the Salon Directorate.' },
+        { status: 403 }
+      );
+    }
+
     // Verify current password if user has one set
     if (user.passwordHash) {
       if (!currentPassword) {

@@ -29,6 +29,21 @@ export async function PUT(req: NextRequest) {
 
     await connectToDatabase();
 
+    const existingUser = await User.findById(payload.id);
+    if (!existingUser) {
+      return NextResponse.json(
+        { success: false, error: 'Collector profile not found' },
+        { status: 404 }
+      );
+    }
+
+    if (existingUser.status === 'blocked') {
+      return NextResponse.json(
+        { success: false, error: 'Your vault privileges have been suspended by the Salon Directorate.' },
+        { status: 403 }
+      );
+    }
+
     const updateData: Record<string, unknown> = {};
 
     if (name && typeof name === 'string' && name.trim()) {
