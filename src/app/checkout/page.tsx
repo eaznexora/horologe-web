@@ -208,6 +208,61 @@ function CheckoutContent() {
   const tax = Math.round(subtotal * 0.03);
   const totalAmount = subtotal + tax;
 
+  // 3. Debounced Abandoned Checkout Tracking
+  useEffect(() => {
+    const hasIdentity = Boolean(user?._id || contactEmail.trim() || contactPhone.trim() || contactName.trim());
+    if (!timepiece || !hasIdentity) return;
+
+    let sessionKey = "";
+    if (typeof window !== "undefined") {
+      sessionKey = localStorage.getItem("horologe_checkout_session") || "";
+      if (!sessionKey) {
+        sessionKey = user?._id
+          ? `user_${user._id}`
+          : `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        localStorage.setItem("horologe_checkout_session", sessionKey);
+      }
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        await fetch("/api/checkout/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionKey,
+            userId: user?._id || null,
+            customerName: contactName.trim() || user?.name || "Anonymous Collector",
+            customerEmail: contactEmail.trim().toLowerCase() || user?.email || "",
+            customerPhone: contactPhone.trim() || user?.phone || "",
+            timepieceId: timepiece.id || null,
+            timepieceSlug: timepiece.slug || slugParam || "",
+            timepieceTitle: timepiece.name || "",
+            timepieceBrand: timepiece.brand || "",
+            timepieceReference: timepiece.reference || "",
+            timepieceImage: timepiece.image || "",
+            timepiecePrice: timepiece.price || 0,
+            shippingCity: addressCity.trim() || "Mumbai",
+            shippingCountry: addressCountry.trim() || "India",
+          }),
+        });
+      } catch (err) {
+        console.debug("Checkout activity tracking failed:", err);
+      }
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [
+    timepiece,
+    user,
+    contactName,
+    contactEmail,
+    contactPhone,
+    addressCity,
+    addressCountry,
+    slugParam,
+  ]);
+
   // Strict Phone KeyDown Validator
   const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)) return;

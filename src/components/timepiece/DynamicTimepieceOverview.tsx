@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Share2, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import TimepieceEnquiryModal from "./TimepieceEnquiryModal";
 
 export interface DynamicTimepieceData {
   _id?: string;
@@ -48,6 +49,7 @@ export default function DynamicTimepieceOverview({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const [showPriceInfo, setShowPriceInfo] = useState(false);
+  const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
 
   // Normalize images to exactly 4 items with fallback to /logo.png
   const images = (product.images || []).filter(Boolean);
@@ -466,6 +468,7 @@ export default function DynamicTimepieceOverview({
               <div className="grid grid-cols-2 gap-3 md:gap-3.5 mt-3 md:mt-3.5">
                 <button
                   type="button"
+                  onClick={() => setIsEnquiryModalOpen(true)}
                   className="h-[48px] md:h-[52px] lg:h-[56px] border border-[#6D5333] text-[#5C4831] hover:bg-[#6D5333]/10 active:bg-[#6D5333]/20 font-medium flex items-center justify-center transition-colors cursor-pointer text-[14px] md:text-[16px] font-sans tracking-wide"
                 >
                   Enquire
@@ -481,6 +484,21 @@ export default function DynamicTimepieceOverview({
           </div>
         </div>
       </div>
+
+      {/* Private Timepiece Enquiry Modal */}
+      <TimepieceEnquiryModal
+        isOpen={isEnquiryModalOpen}
+        onClose={() => setIsEnquiryModalOpen(false)}
+        timepiece={{
+          timepieceId: product._id,
+          slug: product.slug,
+          title: product.name,
+          brand: typeof product.category === "object" ? product.category?.name : (product.tagline || "Horologe Royale"),
+          reference: product.keySpecs?.find((k) => k.label.toLowerCase().includes("ref"))?.value || product.keySpecs?.[0]?.value || product.slug.toUpperCase(),
+          price: product.price,
+          image: product.images?.[0] || "/assets/Rolex Daytona.png",
+        }}
+      />
     </section>
   );
 }

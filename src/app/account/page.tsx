@@ -41,14 +41,20 @@ function AccountPageContent() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Centralized session verification function
+  // Centralized session verification function with anti-cache busting
   async function verifySession() {
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetch(`/api/auth/me?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+        },
+      });
       const data = await res.json();
 
       // Catch 403 status OR blocked payload
-      if (res.status === 403 || data.blocked || data.user?.status === "blocked") {
+      if (data.blocked || data.user?.status === "blocked" || res.status === 403) {
         setIsBlocked(true);
         setUser(data.user || null);
         setIsLoading(false);
@@ -70,7 +76,7 @@ function AccountPageContent() {
     }
   }
 
-  // Trigger on Mount AND Window Focus
+  // Trigger on Mount, Window Focus AND 3-second live polling
   useEffect(() => {
     let isMounted = true;
 
@@ -88,16 +94,18 @@ function AccountPageContent() {
 
     verifySession();
 
-    // Re-verify immediately when user tabs back into the window
-    const handleFocus = () => {
-      verifySession();
-    };
-
+    const handleFocus = () => verifySession();
     window.addEventListener("focus", handleFocus);
+
+    const interval = setInterval(() => {
+      verifySession();
+    }, 3000);
+
     return () => {
       isMounted = false;
       clearTimeout(safetyTimer);
       window.removeEventListener("focus", handleFocus);
+      clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

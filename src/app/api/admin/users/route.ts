@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { Order } from '@/models/Order';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -84,93 +94,119 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({
-      success: true,
-      users: enrichedUsers,
-      metrics: {
-        totalUsers,
-        adminCount,
-        customerCount,
+    return NextResponse.json(
+      {
+        success: true,
+        users: enrichedUsers,
+        metrics: {
+          totalUsers,
+          adminCount,
+          customerCount,
+        },
       },
-    });
+      { status: 200, headers: NO_CACHE_HEADERS }
+    );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to retrieve collectors';
     console.error('[API_ADMIN_USERS_GET_ERROR]:', error);
     return NextResponse.json(
       { success: false, error: errorMessage },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     );
   }
 }
 
-export async function PATCH(req: NextRequest) {
+export async function PATCH(request: Request) {
   try {
     await connectToDatabase();
-
-    const body = await req.json();
+    const body = await request.json();
     const { userId, action, reason, role } = body;
 
-    if (!userId) {
+    if (!userId || (!action && !role)) {
       return NextResponse.json(
-        { success: false, error: 'Collector userId is required' },
-        { status: 400 }
+        { success: false, error: 'User ID and action are required' },
+        { status: 400, headers: NO_CACHE_HEADERS }
       );
     }
 
-    let updateQuery: Record<string, unknown> = {};
+    const updateFields: Record<string, unknown> = {};
 
-    if (action === 'block') {
-      updateQuery = {
-        $set: {
-          status: 'blocked',
-          blockedAt: new Date(),
-          blockReason: reason?.trim() || 'Administrative sanction by Salon Directorate',
-        },
-      };
-    } else if (action === 'unblock') {
-      updateQuery = {
-        $set: {
-          status: 'active',
-          blockReason: '',
-          'appealMessage.status': 'reviewed',
-        },
-        $unset: {
-          blockedAt: 1,
-        },
-      };
+    if (action === 'block' || action === 'unblock') {
+      const isBlocking = action === 'block';
+
+      updateFields.status = isBlocking ? 'blocked' : 'active';
+      updateFields.blockReason = isBlocking
+        ? (reason || 'Administrative review and portfolio verification in progress.')
+        : '';
+      updateFields.blockedAt = isBlocking ? new Date() : null;
+
+      if (!isBlocking) {
+        // Clear or update appeal status when unblocked
+        updateFields['appealMessage.status'] = 'reviewed';
+      }
     } else if (role && ['customer', 'admin'].includes(role)) {
-      updateQuery = {
-        $set: { role },
-      };
+      updateFields.role = role;
     } else {
       return NextResponse.json(
         { success: false, error: 'Valid action ("block" | "unblock") or role ("customer" | "admin") is required' },
-        { status: 400 }
+        { status: 400, headers: NO_CACHE_HEADERS }
       );
     }
 
-    const updatedUser = await User.findByIdAndUpdate(userId, updateQuery, { new: true })
+    console.log(`[ADMIN_USERS_PATCH] Target user ${userId} -> New status: ${updateFields.status || updateFields.role}`);
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateFields },
+      { new: true, strict: false }
+    )
       .select('-passwordHash')
       .lean();
 
     if (!updatedUser) {
+      console.error(`[ADMIN_USERS_PATCH] User not found: ${userId}`);
       return NextResponse.json(
-        { success: false, error: 'Collector not found' },
-        { status: 404 }
+        { success: false, error: 'Collector not found in database' },
+        { status: 404, headers: NO_CACHE_HEADERS }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: action === 'block' ? 'Collector privileges suspended' : action === 'unblock' ? 'Collector privileges reinstated' : 'Role updated successfully',
-      user: updatedUser,
+    // Direct collection write fallback to guarantee persistence if status mismatch occurs
+    if (updateFields.status && (updatedUser as any).status !== updateFields.status) {
+      console.warn(`[ADMIN_USERS_PATCH] Fallback: Executing direct collection updateOne for user ${userId}`);
+      const objId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId;
+      await User.collection.updateOne(
+        { _id: objId as any },
+        { $set: updateFields }
+      );
+      (updatedUser as any).status = updateFields.status;
+      if (updateFields.blockReason !== undefined) {
+        (updatedUser as any).blockReason = updateFields.blockReason;
+      }
+      if (updateFields.blockedAt !== undefined) {
+        (updatedUser as any).blockedAt = updateFields.blockedAt;
+      }
+    }
+
+    console.log(`[ADMIN_USERS_PATCH] Successfully updated in MongoDB:`, {
+      id: updatedUser._id,
+      email: updatedUser.email,
+      status: (updatedUser as any).status,
     });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update collector record';
-    console.error('[API_ADMIN_USERS_PATCH_ERROR]:', error);
+
     return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status: 500 }
+      {
+        success: true,
+        user: updatedUser,
+        message: `Collector status updated to ${updatedUser.status}`,
+      },
+      { status: 200, headers: NO_CACHE_HEADERS }
+    );
+  } catch (error: any) {
+    console.error('[ADMIN_USERS_PATCH_ERROR]:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Database update failed' },
+      { status: 500, headers: NO_CACHE_HEADERS }
     );
   }
 }
@@ -193,7 +229,7 @@ export async function DELETE(req: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Collector ID is required for deletion' },
-        { status: 400 }
+        { status: 400, headers: NO_CACHE_HEADERS }
       );
     }
 
@@ -201,21 +237,24 @@ export async function DELETE(req: NextRequest) {
     if (!deleted) {
       return NextResponse.json(
         { success: false, error: 'Collector not found in database' },
-        { status: 404 }
+        { status: 404, headers: NO_CACHE_HEADERS }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Collector record deleted successfully',
-      deletedId: userId,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        message: 'Collector record deleted successfully',
+        deletedId: userId,
+      },
+      { status: 200, headers: NO_CACHE_HEADERS }
+    );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to delete collector record';
     console.error('[API_ADMIN_USERS_DELETE_ERROR]:', error);
     return NextResponse.json(
       { success: false, error: errorMessage },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     );
   }
 }

@@ -100,9 +100,16 @@ export default function AdminUsersPage() {
     try {
       const params = new URLSearchParams();
       if (searchQuery.trim()) params.set("search", searchQuery.trim());
+      params.set("t", Date.now().toString());
 
-      const res = await fetch(`/api/admin/users?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to load user records");
+      const res = await fetch(`/api/admin/users?${params.toString()}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+        },
+      });
+      if (!res.ok) throw new Error("Failed to load user records from database");
       const data = await res.json();
 
       if (data.success) {
@@ -110,6 +117,8 @@ export default function AdminUsersPage() {
         if (data.metrics) {
           setMetrics(data.metrics);
         }
+      } else {
+        throw new Error(data.error || "Failed to load directory");
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error fetching collectors";
@@ -138,24 +147,44 @@ export default function AdminUsersPage() {
         const payload = {
           userId: user._id,
           action: type,
-          reason: type === "block" ? (blockReasonInput.trim() || "Administrative sanction by Salon Directorate") : undefined,
+          reason:
+            type === "block"
+              ? blockReasonInput.trim() ||
+                "Administrative review and portfolio verification in progress."
+              : undefined,
         };
 
         const res = await fetch("/api/admin/users", {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+          },
           body: JSON.stringify(payload),
         });
 
         const data = await res.json();
         if (!res.ok || !data.success) {
-          throw new Error(data.error || `Failed to ${type} collector`);
+          throw new Error(data.error || `Failed to update status in MongoDB`);
         }
 
-        const newStatus = type === "block" ? "blocked" : "active";
-        const newReason = type === "block" ? (blockReasonInput.trim() || "Administrative sanction by Salon Directorate") : "";
+        const updatedServerUser = data.user;
+        const newStatus = updatedServerUser?.status || (type === "block" ? "blocked" : "active");
+        const newReason =
+          updatedServerUser?.blockReason ||
+          (type === "block"
+            ? blockReasonInput.trim() ||
+              "Administrative review and portfolio verification in progress."
+            : "");
+        const newBlockedAt =
+          updatedServerUser?.blockedAt || (type === "block" ? new Date().toISOString() : null);
+        const newAppeal =
+          updatedServerUser?.appealMessage ||
+          (type === "unblock" && user.appealMessage
+            ? { ...user.appealMessage, status: "reviewed" }
+            : user.appealMessage);
 
-        // Immediate local state update without full page reload
+        // Update local state ONLY after MongoDB confirms write success
         setUsers((prev) =>
           prev.map((u) =>
             u._id === user._id
@@ -163,11 +192,8 @@ export default function AdminUsersPage() {
                   ...u,
                   status: newStatus,
                   blockReason: newReason,
-                  blockedAt: type === "block" ? new Date().toISOString() : null,
-                  appealMessage:
-                    type === "unblock" && u.appealMessage
-                      ? { ...u.appealMessage, status: "reviewed" }
-                      : u.appealMessage,
+                  blockedAt: newBlockedAt,
+                  appealMessage: newAppeal,
                 }
               : u
           )
@@ -180,11 +206,8 @@ export default function AdminUsersPage() {
                   ...prev,
                   status: newStatus,
                   blockReason: newReason,
-                  blockedAt: type === "block" ? new Date().toISOString() : null,
-                  appealMessage:
-                    type === "unblock" && prev.appealMessage
-                      ? { ...prev.appealMessage, status: "reviewed" }
-                      : prev.appealMessage,
+                  blockedAt: newBlockedAt,
+                  appealMessage: newAppeal,
                 }
               : null
           );
@@ -192,12 +215,16 @@ export default function AdminUsersPage() {
 
         showToast(
           type === "block"
-            ? `Collector ${user.name} privileges suspended.`
-            : `Collector ${user.name} privileges reinstated.`
+            ? `Collector ${user.name} privileges suspended (Persisted in MongoDB).`
+            : `Collector ${user.name} privileges reinstated (Persisted in MongoDB).`
         );
+
+        // Immediate database synchronization
+        fetchUsers();
       } else if (type === "delete") {
         const res = await fetch(`/api/admin/users?id=${user._id}`, {
           method: "DELETE",
+          headers: { "Cache-Control": "no-cache" },
         });
 
         const data = await res.json();
@@ -218,13 +245,15 @@ export default function AdminUsersPage() {
         }
 
         showToast(`Collector ${user.name} permanently deleted from vault.`);
+        fetchUsers();
       }
 
       setConfirmAction(null);
       setBlockReasonInput("");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Action failed";
-      showToast(msg);
+      // Luxury bronze banner / notice on error, leaving table state completely unchanged
+      showToast(`Failed to update status in MongoDB: ${msg}`);
     } finally {
       setIsProcessingAction(false);
     }

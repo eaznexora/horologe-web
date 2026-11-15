@@ -83,7 +83,7 @@ export default function ConciergePage() {
     };
   }, []);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setFormError("");
 
@@ -114,12 +114,38 @@ export default function ConciergePage() {
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const generatedRef = `HR-CON-${Math.floor(100000 + Math.random() * 900000)}`;
+    try {
+      const fullPhone = `${dialCode} ${phoneNumber.trim()}`;
+      const res = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${firstName.trim()} ${lastName.trim()}`,
+          email: email.trim().toLowerCase(),
+          phone: fullPhone,
+          subject: subject,
+          message: message.trim(),
+          type: "general",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to submit inquiry to Concierge.");
+      }
+
+      const generatedRef = data.inquiry?._id
+        ? `HR-CON-${String(data.inquiry._id).slice(-6).toUpperCase()}`
+        : `HR-CON-${Math.floor(100000 + Math.random() * 900000)}`;
+
       setReferenceId(generatedRef);
-      setIsSubmitting(false);
       setIsSuccessModalOpen(true);
-    }, 850);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error submitting inquiry";
+      setFormError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleResetForm = () => {

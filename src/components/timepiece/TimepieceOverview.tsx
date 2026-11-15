@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Share2, ArrowLeft, ArrowRight, Info, Check } from "lucide-react";
+import TimepieceEnquiryModal from "./TimepieceEnquiryModal";
 
 const galleryImages = [
   {
@@ -32,6 +33,7 @@ export default function TimepieceOverview() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const [showPriceInfo, setShowPriceInfo] = useState(false);
+  const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
 
   const handlePrevImage = () => {
     setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
@@ -407,6 +409,7 @@ export default function TimepieceOverview() {
               <div className="grid grid-cols-2 gap-3 md:gap-3.5 mt-3 md:mt-3.5">
                 <button
                   type="button"
+                  onClick={() => setIsEnquiryModalOpen(true)}
                   className="h-[48px] md:h-[52px] lg:h-[56px] border border-[#6D5333] text-[#5C4831] hover:bg-[#6D5333]/10 active:bg-[#6D5333]/20 font-medium flex items-center justify-center transition-colors cursor-pointer text-[14px] md:text-[16px] font-sans tracking-wide"
                 >
                   Enquire
@@ -424,6 +427,20 @@ export default function TimepieceOverview() {
 
         </div>
       </div>
+
+      {/* Private Timepiece Enquiry Modal */}
+      <TimepieceEnquiryModal
+        isOpen={isEnquiryModalOpen}
+        onClose={() => setIsEnquiryModalOpen(false)}
+        timepiece={{
+          slug: "rolex-cosmograph-daytona",
+          title: "Rolex Cosmograph Daytona",
+          brand: "Rolex",
+          reference: "116508",
+          price: 2000000,
+          image: "/assets/Rolex Daytona.png",
+        }}
+      />
     </section>
   );
 }

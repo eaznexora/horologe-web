@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Order } from '@/models/Order';
 import { User } from '@/models/User';
+import { AbandonedCheckout } from '@/models/AbandonedCheckout';
 import { verifyUserToken, SESSION_COOKIE_NAME } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
@@ -132,6 +133,30 @@ export async function POST(req: NextRequest) {
     });
 
     await newOrder.save();
+
+    // Mark matching abandoned checkouts as recovered
+    try {
+      const matchCriteria: Array<Record<string, unknown>> = [
+        { customerEmail: customerSnapshot.email.trim().toLowerCase() },
+      ];
+      if (authenticatedUserId) {
+        matchCriteria.push({ userId: authenticatedUserId });
+      }
+      await AbandonedCheckout.updateMany(
+        {
+          $or: matchCriteria,
+          status: 'abandoned',
+        },
+        {
+          $set: {
+            status: 'recovered',
+            lastActiveAt: new Date(),
+          },
+        }
+      );
+    } catch (checkoutErr) {
+      console.error('Error recovering abandoned checkout records:', checkoutErr);
+    }
 
     // If authenticated and user has no phone set yet, auto-sync
     if (authenticatedUserId) {
