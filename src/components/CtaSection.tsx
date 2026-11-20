@@ -1,7 +1,16 @@
 import React from "react";
 import Link from "next/link";
+import BannerLink from "@/components/BannerLink";
 
-export default function CtaSection() {
+interface CtaSectionProps {
+  banners?: Record<string, { desktopUrl?: string; mobileUrl?: string; linkUrl?: string; mediaType?: string }>;
+}
+
+export default function CtaSection({ banners = {} }: CtaSectionProps) {
+  const desktopCta = banners?.["cta-bottom"]?.desktopUrl || "/assets/CTA-desktop.png";
+  const mobileCta = banners?.["cta-bottom"]?.mobileUrl || desktopCta || "/assets/CTA-mobile.png";
+  const ctaLink = banners?.["cta-bottom"]?.linkUrl?.trim();
+
   return (
     <section className="w-full bg-[#E7DDD2] relative overflow-hidden">
       {/* =========================================
@@ -9,20 +18,32 @@ export default function CtaSection() {
           ========================================= */}
       <div className="hidden md:block w-full relative overflow-hidden">
         {/* Right Half Visual with Soft Gradient Blend */}
-        <div className="absolute right-0 top-0 bottom-0 w-[55%] lg:w-[58%] xl:w-[55%] h-full pointer-events-none select-none">
-          <div className="relative w-full h-full">
-            <img
-              src="/assets/CTA-desktop.png"
-              alt="Luxury Timepiece"
-              className="w-full h-full object-cover object-right"
-            />
-            {/* Gentle gradient overlay to blend softly to the left into #E7DDD2 background */}
-            <div className="absolute inset-y-0 left-0 w-36 lg:w-56 bg-gradient-to-r from-[#E7DDD2] via-[#E7DDD2]/70 to-transparent pointer-events-none" />
-          </div>
+        <div className={`absolute right-0 top-0 bottom-0 w-[55%] lg:w-[58%] xl:w-[55%] h-full select-none ${ctaLink ? "cursor-pointer z-10 pointer-events-auto" : "pointer-events-none"}`}>
+          {ctaLink ? (
+            <BannerLink href={ctaLink} className="block relative w-full h-full">
+              <img
+                src={desktopCta}
+                alt="Luxury Timepiece"
+                className="w-full h-full object-cover object-right"
+              />
+              {/* Gentle gradient overlay to blend softly to the left into #E7DDD2 background */}
+              <div className="absolute inset-y-0 left-0 w-36 lg:w-56 bg-gradient-to-r from-[#E7DDD2] via-[#E7DDD2]/70 to-transparent pointer-events-none" />
+            </BannerLink>
+          ) : (
+            <div className="relative w-full h-full">
+              <img
+                src={desktopCta}
+                alt="Luxury Timepiece"
+                className="w-full h-full object-cover object-right"
+              />
+              {/* Gentle gradient overlay to blend softly to the left into #E7DDD2 background */}
+              <div className="absolute inset-y-0 left-0 w-36 lg:w-56 bg-gradient-to-r from-[#E7DDD2] via-[#E7DDD2]/70 to-transparent pointer-events-none" />
+            </div>
+          )}
         </div>
 
         {/* Content Container */}
-        <div className="w-full min-h-[480px] lg:min-h-[540px] flex items-center px-8 md:px-16 lg:px-24 xl:px-32 relative z-10">
+        <div className="w-full min-h-[480px] lg:min-h-[540px] flex items-center px-8 md:px-16 lg:px-24 xl:px-32 relative z-20 pointer-events-auto">
           <div className="w-full md:w-[56%] lg:w-[52%] py-12 lg:py-16">
             {/* Headline */}
             <h2 className="font-serif font-normal uppercase tracking-tight leading-[0.98] text-[60px] lg:text-[78px] xl:text-[82px] mb-6">
@@ -97,11 +118,21 @@ export default function CtaSection() {
 
         {/* Mobile Visual (anchored flush to the bottom) */}
         <div className="-mx-6 mt-2 flex justify-center overflow-hidden">
-          <img
-            src="/assets/CTA-mobile.png"
-            alt="Luxury Timepiece and Pen"
-            className="w-full h-auto object-cover object-top select-none pointer-events-none block"
-          />
+          {ctaLink ? (
+            <BannerLink href={ctaLink} className="block w-full cursor-pointer">
+              <img
+                src={mobileCta}
+                alt="Luxury Timepiece and Pen"
+                className="w-full h-auto object-cover object-top select-none block"
+              />
+            </BannerLink>
+          ) : (
+            <img
+              src={mobileCta}
+              alt="Luxury Timepiece and Pen"
+              className="w-full h-auto object-cover object-top select-none pointer-events-none block"
+            />
+          )}
         </div>
       </div>
     </section>

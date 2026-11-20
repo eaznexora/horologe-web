@@ -73,6 +73,18 @@ interface EditProductPageProps {
   params: Promise<{ id: string }>;
 }
 
+function sanitizeSlugInput(val: string): string {
+  if (!val) return "";
+  return val
+    .replace(/^https?:\/\/[^\/]+/i, "")
+    .replace(/^\/?timepiece\/?/i, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export default function EditProductPage({ params }: EditProductPageProps) {
   const router = useRouter();
   const resolvedParams = use(params);
@@ -91,6 +103,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
   // Timepiece Form State
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [reference, setReference] = useState("");
@@ -187,6 +200,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
 
             setName(p.name || "");
             setSlug(p.slug || "");
+            setSlugManuallyEdited(Boolean(p.slug));
             setBrand(p.brand || "");
             setModel(p.model || "");
             setReference(p.reference || "");
@@ -214,7 +228,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
 
             setMetaTitle(p.seo?.metaTitle || "");
             setMetaDescription(p.seo?.metaDescription || "");
-            setCanonicalUrl(p.seo?.canonicalUrl || "");
+            setCanonicalUrl(p.seo?.canonicalUrl || (p.slug ? `/timepiece/${p.slug}` : ""));
             setFocusKeywords(
               Array.isArray(p.seo?.keywords)
                 ? p.seo.keywords.join(", ")
@@ -269,6 +283,19 @@ export default function EditProductPage({ params }: EditProductPageProps) {
     originalPriceNum > 0 && savings > 0
       ? Math.round((savings / originalPriceNum) * 100)
       : 0;
+
+  // Auto-slug generator on name input
+  const handleNameChange = (val: string) => {
+    setName(val);
+    if (!slugManuallyEdited) {
+      const autoSlug = sanitizeSlugInput(val);
+      setSlug(autoSlug);
+      setCanonicalUrl(autoSlug ? `/timepiece/${autoSlug}` : "");
+    }
+    if (!metaTitle) {
+      setMetaTitle(val ? `${val} | Horologe Royale` : "");
+    }
+  };
 
   // Image Upload Handlers
   const handleFileChange = (slotIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -386,6 +413,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
 
     setName(p.name || "");
     setSlug(p.slug || "");
+    setSlugManuallyEdited(Boolean(p.slug));
     setBrand(p.brand || "");
     setModel(p.model || "");
     setReference(p.reference || "");
@@ -407,7 +435,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
     setKeySpecs(Array.isArray(p.keySpecs) && p.keySpecs.length > 0 ? p.keySpecs : []);
     setMetaTitle(p.seo?.metaTitle || "");
     setMetaDescription(p.seo?.metaDescription || "");
-    setCanonicalUrl(p.seo?.canonicalUrl || "");
+    setCanonicalUrl(p.seo?.canonicalUrl || (p.slug ? `/timepiece/${p.slug}` : ""));
     setFocusKeywords(
       Array.isArray(p.seo?.keywords)
         ? p.seo.keywords.join(", ")
@@ -474,7 +502,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
         seo: {
           metaTitle: metaTitle || `${name} | Horologe Royale`,
           metaDescription: metaDescription || tagline,
-          canonicalUrl: canonicalUrl || `/timepiece/${slug}`,
+          canonicalUrl: slug.trim() ? `/timepiece/${slug.trim()}` : undefined,
           focusKeywords,
         },
         status,
@@ -705,7 +733,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                   type="text"
                   placeholder="e.g. Rolex Cosmograph Daytona"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => handleNameChange(e.target.value)}
                   className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2.5 text-xs text-[#2C241E] placeholder-[#9E8D7E] outline-none focus:border-[#5C4529]/60 shadow-xs transition-colors"
                 />
               </div>
@@ -714,16 +742,21 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                 <label className="text-xs font-semibold text-[#2C241E] mb-1.5 block">
                   Product Slug / URL Path
                 </label>
-                <div className="flex items-center bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3 py-2 text-xs text-[#2C241E]">
-                  <span className="text-[#8C7A6B] font-mono text-[11px] select-none">
+                <div className="flex items-center w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl overflow-hidden focus-within:border-[#5C4529]/60 shadow-xs">
+                  <span className="px-3 py-2 text-xs font-mono text-[#8C7A6B] bg-[#EFE8DD]/60 border-r border-[#D4C6B3]/50 select-none shrink-0">
                     /timepiece/
                   </span>
                   <input
                     type="text"
                     placeholder="rolex-cosmograph-daytona"
                     value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    className="flex-1 bg-transparent outline-none text-[#2C241E] font-mono ml-1 text-xs"
+                    onChange={(e) => {
+                      const clean = sanitizeSlugInput(e.target.value);
+                      setSlug(clean);
+                      setSlugManuallyEdited(true);
+                      setCanonicalUrl(clean ? `/timepiece/${clean}` : "");
+                    }}
+                    className="w-full bg-transparent px-3 py-2 text-xs text-[#2C241E] font-mono outline-none"
                   />
                 </div>
               </div>
@@ -1209,13 +1242,23 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                   <label className="text-xs font-semibold text-[#2C241E] mb-1.5 block">
                     Canonical URL Slug
                   </label>
-                  <input
-                    type="text"
-                    placeholder={`/timepiece/${slug || "slug"}`}
-                    value={canonicalUrl}
-                    onChange={(e) => setCanonicalUrl(e.target.value)}
-                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2 text-xs text-[#2C241E] font-mono outline-none focus:border-[#5C4529]/60 shadow-xs"
-                  />
+                  <div className="flex items-center w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl overflow-hidden focus-within:border-[#5C4529]/60 shadow-xs">
+                    <span className="px-3 py-2 text-xs font-mono text-[#8C7A6B] bg-[#EFE8DD]/60 border-r border-[#D4C6B3]/50 select-none shrink-0">
+                      /timepiece/
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="rolex-cosmograph-daytona"
+                      value={slug}
+                      onChange={(e) => {
+                        const clean = sanitizeSlugInput(e.target.value);
+                        setSlug(clean);
+                        setSlugManuallyEdited(true);
+                        setCanonicalUrl(clean ? `/timepiece/${clean}` : "");
+                      }}
+                      className="w-full bg-transparent px-3 py-2 text-xs text-[#2C241E] font-mono outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -1241,7 +1284,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                   {metaTitle || `${name || "Timepiece Title"} | Horologe Royale`}
                 </p>
                 <p className="text-[11px] text-[#006621] truncate font-mono">
-                  https://horologe.com{canonicalUrl || `/timepiece/${slug || "product-slug"}`}
+                  https://horologe.com/timepiece/{slug || "product-slug"}
                 </p>
                 <p className="text-xs text-[#545454] line-clamp-2 mt-0.5 leading-snug">
                   {metaDescription ||

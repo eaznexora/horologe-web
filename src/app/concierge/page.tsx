@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import BannerLink from "@/components/BannerLink";
 import {
   Phone,
   MessageCircle,
@@ -53,6 +54,32 @@ export default function ConciergePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [referenceId, setReferenceId] = useState("");
+  const [banners, setBanners] = useState<Record<string, { desktopUrl?: string; mobileUrl?: string; linkUrl?: string }>>({});
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/banners?page=concierge&t=${Date.now()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data?.banners) {
+          setBanners(data.banners);
+        }
+      })
+      .catch(() => {});
+
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const heroDesktop = banners["concierge-hero"]?.desktopUrl || "/assets/categories-hero.png";
+  const activeConciergeHero = (isMobile && banners["concierge-hero"]?.mobileUrl) || heroDesktop;
+  const heroLink = banners["concierge-hero"]?.linkUrl?.trim();
+
+  const boutiqueDesktop = banners["concierge-boutique"]?.desktopUrl || "/assets/horologe store 1.png";
+  const activeConciergeBoutique = (isMobile && banners["concierge-boutique"]?.mobileUrl) || boutiqueDesktop;
+  const boutiqueLink = banners["concierge-boutique"]?.linkUrl?.trim();
 
   const subjectRef = useRef<HTMLDivElement>(null);
   const dialCodeRef = useRef<HTMLDivElement>(null);
@@ -187,14 +214,22 @@ export default function ConciergePage() {
             {/* Right Block: Boutique Atmospheric Visual */}
             <div className="lg:col-span-5 relative min-h-[300px] sm:min-h-[360px] lg:min-h-full overflow-hidden bg-[#1A1816]">
               <Image
-                src="/assets/categories-hero.png"
+                src={activeConciergeHero}
                 alt="Horologe Royale Boutique Staging - More than a watch"
                 fill
                 priority
+                unoptimized={activeConciergeHero.startsWith("/api/media/")}
                 className="object-cover object-center"
                 sizes="(max-width: 1024px) 100vw, 42vw"
               />
               <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+              {heroLink && (
+                <BannerLink
+                  href={heroLink}
+                  className="absolute inset-0 z-20 cursor-pointer"
+                  aria-label="Visit destination"
+                />
+              )}
             </div>
 
           </div>
@@ -645,12 +680,13 @@ export default function ConciergePage() {
             {/* 3. Right Block: Boutique Storefront Facade Photo Touching the Right Edge (~3 cols) */}
             <div className="lg:col-span-3 relative h-[380px] sm:h-[460px] lg:h-full w-full overflow-hidden">
               <Image
-                src="/assets/horologe store 1.png"
+                src={activeConciergeBoutique}
                 alt="Horologe Royale Luxury Storefront at Kala Ghoda, Mumbai"
                 fill
                 className="object-cover object-center"
                 sizes="(max-width: 1024px) 100vw, 25vw"
                 priority
+                unoptimized={activeConciergeBoutique.startsWith("/api/media/")}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
               <div className="absolute bottom-6 left-6 right-6 text-[#FAF6F0] pointer-events-none">
@@ -661,6 +697,13 @@ export default function ConciergePage() {
                   MUMBAI • PRIVATE SUITE
                 </span>
               </div>
+              {boutiqueLink && (
+                <BannerLink
+                  href={boutiqueLink}
+                  className="absolute inset-0 z-20 cursor-pointer"
+                  aria-label="Visit destination"
+                />
+              )}
             </div>
 
           </div>

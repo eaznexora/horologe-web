@@ -1,4 +1,5 @@
 import Image from "next/image";
+import BannerLink from "@/components/BannerLink";
 
 const logos = [
   "/assets/Rolex%20slider.png",
@@ -8,7 +9,11 @@ const logos = [
   "/assets/Audemars%20piguet%20slider.png",
 ];
 
-export default function HouseOfHorology() {
+interface HouseOfHorologyProps {
+  banners?: Record<string, { desktopUrl?: string; mobileUrl?: string; linkUrl?: string; mediaType?: string }>;
+}
+
+export default function HouseOfHorology({ banners = {} }: HouseOfHorologyProps) {
   return (
     <section className="w-full bg-[#E7DDD2] flex flex-col relative z-20">
       <div className="flex flex-col md:flex-row w-full justify-between items-stretch">
@@ -101,12 +106,17 @@ export default function HouseOfHorology() {
 
         {/* Right Column (Store Image) */}
         <div className="w-full md:w-auto relative flex justify-end bg-[#E7DDD2]">
-          <img 
-            src="/assets/horologe%20store%201.png" 
-            alt="Horologe Royale Storefront" 
-            className="w-full h-auto md:w-auto md:h-full object-contain object-right md:object-right-top"
-            style={{ maxHeight: '95%' }}
-          />
+          <BannerLink
+            href={banners?.["house-of-horology"]?.linkUrl}
+            className={banners?.["house-of-horology"]?.linkUrl?.trim() ? "cursor-pointer block w-full md:w-auto" : undefined}
+          >
+            <img 
+              src={banners?.["house-of-horology"]?.desktopUrl || "/assets/horologe%20store%201.png"} 
+              alt="Horologe Royale Storefront" 
+              className="w-full h-auto md:w-auto md:h-full object-contain object-right md:object-right-top"
+              style={{ maxHeight: '95%' }}
+            />
+          </BannerLink>
         </div>
       </div>
 

@@ -11,8 +11,38 @@ import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
 import CtaSection from "@/components/CtaSection";
 import Image from "next/image";
+import { connectToDatabase } from "@/lib/mongodb";
+import { SiteBanner } from "@/models/SiteBanner";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+async function getHomeBanners() {
+  try {
+    await connectToDatabase();
+    const records = await SiteBanner.find({ page: "home" }).lean();
+    const map: Record<
+      string,
+      { desktopUrl: string; mobileUrl: string; linkUrl: string; mediaType: "image" | "video" }
+    > = {};
+    records.forEach((item: any) => {
+      map[item.slotKey] = {
+        desktopUrl: item.desktopUrl || "",
+        mobileUrl: item.mobileUrl || "",
+        linkUrl: item.linkUrl || "",
+        mediaType: item.mediaType || "image",
+      };
+    });
+    return map;
+  } catch (error) {
+    console.error("Error loading home banners on SSR:", error);
+    return {};
+  }
+}
+
+export default async function Home() {
+  const banners = await getHomeBanners();
+
   return (
     <main className="relative min-h-screen bg-[#E7DDD2] text-black overflow-x-hidden flex flex-col">
       {/* Background Image */}
@@ -59,28 +89,28 @@ export default function Home() {
         </div>
       </div>
 
-      <HouseOfHorology />
+      <HouseOfHorology banners={banners} />
 
       {/* Brand Value Section: Every Way To Own Time */}
-      <OwnTimeSection />
+      <OwnTimeSection banners={banners} />
 
       {/* Experience Section */}
-      <ExperienceSection />
+      <ExperienceSection banners={banners} />
 
       {/* Gender Collections Section */}
-      <GenderCollections />
+      <GenderCollections banners={banners} />
 
       {/* House Gallery Section */}
-      <HouseGallery />
+      <HouseGallery banners={banners} />
 
       {/* Luxury Reviews Section */}
       <ReviewsSection />
 
       {/* Luxury FAQ Section */}
-      <FaqSection />
+      <FaqSection banners={banners} />
 
       {/* Luxury CTA Section */}
-      <CtaSection />
+      <CtaSection banners={banners} />
 
       {/* Luxury Footer Component */}
       <Footer />

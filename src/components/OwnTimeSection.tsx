@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import BannerLink from "@/components/BannerLink";
 
 interface Pillar {
   title: string;
@@ -27,7 +28,15 @@ const pillars: Pillar[] = [
   },
 ];
 
-export default function OwnTimeSection() {
+interface OwnTimeSectionProps {
+  banners?: Record<string, { desktopUrl?: string; mobileUrl?: string; linkUrl?: string; mediaType?: string }>;
+}
+
+export default function OwnTimeSection({ banners = {} }: OwnTimeSectionProps) {
+  const desktopSrc = banners?.["own-time"]?.desktopUrl || "/assets/own-time-desktop.png";
+  const mobileSrc = banners?.["own-time"]?.mobileUrl || "/assets/own-time-mobile.png";
+  const ownTimeLink = banners?.["own-time"]?.linkUrl?.trim();
+
   return (
     <section className="w-full bg-[#E7DDD2] relative overflow-hidden">
       {/* 1. TOP BANNER STRIP */}
@@ -39,46 +48,94 @@ export default function OwnTimeSection() {
 
       {/* 2. HERO BANNER BLOCK */}
       {/* Desktop Hero View - Full native aspect ratio (1440x329) to eliminate cropping */}
-      <div className="hidden md:block relative w-full overflow-hidden">
-        <Image
-          src="/assets/own-time-desktop.png"
-          alt="Every way to own time"
-          width={1440}
-          height={329}
-          priority
-          className="w-full h-auto block object-cover"
-        />
-        <div className="absolute top-1/2 -translate-y-1/2 left-8 md:left-12 lg:left-16 z-10 max-w-[750px]">
-          <h2 className="font-serif uppercase tracking-tight text-[51px] md:text-[63px] lg:text-[78px] leading-[1.02]">
-            <span className="block text-[#1C1A17]">EVERY WAY</span>
-            <span className="block">
-              <span className="text-[#1C1A17]">TO OWN </span>
-              <span className="text-[#9D7E50]">TIME.</span>
-            </span>
-          </h2>
+      {ownTimeLink ? (
+        <BannerLink href={ownTimeLink} className="hidden md:block relative w-full overflow-hidden cursor-pointer">
+          <Image
+            src={desktopSrc}
+            alt="Every way to own time"
+            width={1440}
+            height={329}
+            priority
+            unoptimized={desktopSrc.startsWith("/api/media/")}
+            className="w-full h-auto block object-cover"
+          />
+          <div className="absolute top-1/2 -translate-y-1/2 left-8 md:left-12 lg:left-16 z-10 max-w-[750px]">
+            <h2 className="font-serif uppercase tracking-tight text-[51px] md:text-[63px] lg:text-[78px] leading-[1.02]">
+              <span className="block text-[#1C1A17]">EVERY WAY</span>
+              <span className="block">
+                <span className="text-[#1C1A17]">TO OWN </span>
+                <span className="text-[#9D7E50]">TIME.</span>
+              </span>
+            </h2>
+          </div>
+        </BannerLink>
+      ) : (
+        <div className="hidden md:block relative w-full overflow-hidden">
+          <Image
+            src={desktopSrc}
+            alt="Every way to own time"
+            width={1440}
+            height={329}
+            priority
+            unoptimized={desktopSrc.startsWith("/api/media/")}
+            className="w-full h-auto block object-cover"
+          />
+          <div className="absolute top-1/2 -translate-y-1/2 left-8 md:left-12 lg:left-16 z-10 max-w-[750px]">
+            <h2 className="font-serif uppercase tracking-tight text-[51px] md:text-[63px] lg:text-[78px] leading-[1.02]">
+              <span className="block text-[#1C1A17]">EVERY WAY</span>
+              <span className="block">
+                <span className="text-[#1C1A17]">TO OWN </span>
+                <span className="text-[#9D7E50]">TIME.</span>
+              </span>
+            </h2>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Mobile Hero View - Full native aspect ratio (428x316) to eliminate cropping */}
-      <div className="block md:hidden relative w-full overflow-hidden">
-        <Image
-          src="/assets/own-time-mobile.png"
-          alt="Every way to own time"
-          width={428}
-          height={316}
-          priority
-          className="w-full h-auto block object-cover"
-        />
-        <div className="absolute top-3.5 sm:top-5 left-4 sm:left-6 z-10 max-w-[90%] sm:max-w-[380px]">
-          <h2 className="font-serif uppercase tracking-tight text-[48px] sm:text-[56px] leading-[1.0]">
-            <span className="block text-[#1C1A17]">EVERY WAY</span>
-            <span className="block">
-              <span className="text-[#1C1A17]">TO OWN </span>
-              <span className="text-[#9D7E50]">TIME.</span>
-            </span>
-          </h2>
+      {ownTimeLink ? (
+        <BannerLink href={ownTimeLink} className="block md:hidden relative w-full overflow-hidden cursor-pointer">
+          <Image
+            src={mobileSrc}
+            alt="Every way to own time"
+            width={428}
+            height={316}
+            priority
+            unoptimized={mobileSrc.startsWith("/api/media/")}
+            className="w-full h-auto block object-cover"
+          />
+          <div className="absolute top-3.5 sm:top-5 left-4 sm:left-6 z-10 max-w-[90%] sm:max-w-[380px]">
+            <h2 className="font-serif uppercase tracking-tight text-[48px] sm:text-[56px] leading-[1.0]">
+              <span className="block text-[#1C1A17]">EVERY WAY</span>
+              <span className="block">
+                <span className="text-[#1C1A17]">TO OWN </span>
+                <span className="text-[#9D7E50]">TIME.</span>
+              </span>
+            </h2>
+          </div>
+        </BannerLink>
+      ) : (
+        <div className="block md:hidden relative w-full overflow-hidden">
+          <Image
+            src={mobileSrc}
+            alt="Every way to own time"
+            width={428}
+            height={316}
+            priority
+            unoptimized={mobileSrc.startsWith("/api/media/")}
+            className="w-full h-auto block object-cover"
+          />
+          <div className="absolute top-3.5 sm:top-5 left-4 sm:left-6 z-10 max-w-[90%] sm:max-w-[380px]">
+            <h2 className="font-serif uppercase tracking-tight text-[48px] sm:text-[56px] leading-[1.0]">
+              <span className="block text-[#1C1A17]">EVERY WAY</span>
+              <span className="block">
+                <span className="text-[#1C1A17]">TO OWN </span>
+                <span className="text-[#9D7E50]">TIME.</span>
+              </span>
+            </h2>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 3. THE 4 PILLARS (VALUE PROPOSITIONS) */}
       {/* Desktop Pillars Layout */}

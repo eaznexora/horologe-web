@@ -369,7 +369,7 @@ export default function MobileNavDrawer({
 
               <button
                 type="button"
-                onClick={() => handleNavigate("#insights")}
+                onClick={() => handleNavigate("/insights")}
                 className="text-[13px] tracking-[0.2em] uppercase font-medium text-[#2C241E] hover:text-[#9D7E50] active:scale-[0.99] transition-all text-left block cursor-pointer"
               >
                 INSIGHTS

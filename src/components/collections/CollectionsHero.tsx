@@ -1,6 +1,15 @@
 import React from "react";
+import BannerLink from "@/components/BannerLink";
 
-export default function CollectionsHero() {
+interface CollectionsHeroProps {
+  banners?: Record<string, { desktopUrl?: string; mobileUrl?: string; linkUrl?: string; mediaType?: string }>;
+}
+
+export default function CollectionsHero({ banners = {} }: CollectionsHeroProps) {
+  const desktopImg = banners?.["collections-hero"]?.desktopUrl || "/assets/categories-hero.png";
+  const mobileImg = banners?.["collections-hero"]?.mobileUrl || desktopImg;
+  const heroLink = banners?.["collections-hero"]?.linkUrl?.trim();
+
   return (
     <section className="w-full bg-[#E7DDD2] relative overflow-hidden">
       {/* DESKTOP VIEW (hidden md:flex) */}
@@ -18,11 +27,21 @@ export default function CollectionsHero() {
 
         {/* Right Column: Smaller, fully visible image touching the header at top */}
         <div className="w-[46%] lg:w-[50%] flex justify-end items-start pr-0">
-          <img
-            src="/assets/categories-hero.png"
-            alt="Horologe Royale Boutique Experience"
-            className="w-full max-w-[480px] lg:max-w-[520px] xl:max-w-[560px] h-auto object-contain object-top block"
-          />
+          {heroLink ? (
+            <BannerLink href={heroLink} className="block w-full max-w-[480px] lg:max-w-[520px] xl:max-w-[560px] cursor-pointer">
+              <img
+                src={desktopImg}
+                alt="Horologe Royale Boutique Experience"
+                className="w-full h-auto object-contain object-top block"
+              />
+            </BannerLink>
+          ) : (
+            <img
+              src={desktopImg}
+              alt="Horologe Royale Boutique Experience"
+              className="w-full max-w-[480px] lg:max-w-[520px] xl:max-w-[560px] h-auto object-contain object-top block"
+            />
+          )}
         </div>
       </div>
 
@@ -41,11 +60,21 @@ export default function CollectionsHero() {
 
         {/* Bottom Image Block: Smaller and fully visible */}
         <div className="w-full px-6 pb-10 flex justify-center">
-          <img
-            src="/assets/categories-hero.png"
-            alt="Horologe Royale Boutique Experience"
-            className="w-full max-w-[380px] h-auto object-contain object-center block"
-          />
+          {heroLink ? (
+            <BannerLink href={heroLink} className="block w-full max-w-[380px] cursor-pointer">
+              <img
+                src={mobileImg}
+                alt="Horologe Royale Boutique Experience"
+                className="w-full h-auto object-contain object-center block"
+              />
+            </BannerLink>
+          ) : (
+            <img
+              src={mobileImg}
+              alt="Horologe Royale Boutique Experience"
+              className="w-full max-w-[380px] h-auto object-contain object-center block"
+            />
+          )}
         </div>
       </div>
     </section>

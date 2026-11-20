@@ -3,13 +3,22 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Phone, Globe, ChevronDown } from "lucide-react";
 
 interface FooterProps {
   hideTopStrip?: boolean;
+  hideContactBar?: boolean;
 }
 
-export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
+export default function Footer({
+  hideTopStrip = false,
+  hideContactBar = false,
+}: FooterProps = {}) {
+  const pathname = usePathname();
+  const shouldHideContactBar =
+    hideTopStrip || hideContactBar || pathname?.startsWith("/insights");
+
   const [openExplore, setOpenExplore] = useState(false);
   const [openSupport, setOpenSupport] = useState(false);
   const [email, setEmail] = useState("");
@@ -32,7 +41,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
     { label: "Our Collection", href: "/collections" },
     { label: "Buying", href: "#" },
     { label: "Selling", href: "/sell-your-luxury" },
-    { label: "Insights", href: "#" },
+    { label: "Insights", href: "/insights" },
   ];
 
   const supportLinks = [
@@ -49,7 +58,7 @@ export default function Footer({ hideTopStrip = false }: FooterProps = {}) {
       {/* ------------------------------------------------------------- */}
       {/* 1. TOP CONTACT STRIP                                         */}
       {/* ------------------------------------------------------------- */}
-      {!hideTopStrip && (
+      {!shouldHideContactBar && (
         <div className="w-full bg-[#C6B29A] text-[#3E342B]">
         {/* Desktop View */}
         <div className="hidden md:flex items-center justify-around py-3.5 px-8 text-[15px] font-medium tracking-wide max-w-[1440px] w-[94%] mx-auto">

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import BannerLink from "@/components/BannerLink";
 import {
   Eye,
   EyeOff,
@@ -14,8 +15,16 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export type AuthMode = "signin" | "signup";
 
-interface AuthCardProps {
+export interface AuthCardBannerData {
+  desktopUrl?: string;
+  mobileUrl?: string;
+  linkUrl?: string;
+  mediaType?: "image" | "video" | string;
+}
+
+export interface AuthCardProps {
   initialMode?: AuthMode;
+  banners?: Record<string, AuthCardBannerData>;
 }
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -41,7 +50,7 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-function AuthCardContent({ initialMode = "signin" }: AuthCardProps) {
+function AuthCardContent({ initialMode = "signin", banners = {} }: AuthCardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -55,6 +64,44 @@ function AuthCardContent({ initialMode = "signin" }: AuthCardProps) {
     if (queryMode === "signin" || queryMode === "login") return "signin";
     return initialMode;
   });
+
+  // Dynamic Banners State & Viewport Detection
+  const [bannersState, setBannersState] = useState<Record<string, AuthCardBannerData>>(banners);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (banners && Object.keys(banners).length > 0) {
+      setBannersState(banners);
+    }
+  }, [banners]);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Client-side fallback fetch if banners were not provided via SSR
+  useEffect(() => {
+    if (bannersState && Object.keys(bannersState).length > 0) return;
+    let isMounted = true;
+    fetch("/api/banners?page=auth")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.banners) {
+          setBannersState(data.banners);
+        }
+      })
+      .catch((err) => {
+        console.error("Client banner fetch error:", err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [bannersState]);
 
   // Form Fields State
   const [email, setEmail] = useState("");
@@ -200,32 +247,51 @@ function AuthCardContent({ initialMode = "signin" }: AuthCardProps) {
     }, 800);
   };
 
+  // Resolve Active Media Slot
+  const activeSlotKey = mode === "signin" ? "auth-signin" : "auth-signup";
+  const activeSlot = bannersState?.[activeSlotKey];
+  const defaultVideo = mode === "signin" ? "/assets/login%20page.mp4" : "/assets/account%20creation.mp4";
+  const activeVideoSrc =
+    (isMobile && activeSlot?.mobileUrl?.trim()) ||
+    activeSlot?.desktopUrl?.trim() ||
+    defaultVideo;
+
+  const isImageMedia =
+    activeSlot?.mediaType === "image" ||
+    /\.(jpg|jpeg|png|webp|avif)$/i.test(activeVideoSrc);
+
+  const activeLink = activeSlot?.linkUrl?.trim();
+
   return (
     <div className="w-full max-w-5xl mx-auto bg-[#FAF6F0] border border-[#DFCFC0] shadow-sm rounded-none overflow-hidden grid grid-cols-1 lg:grid-cols-12 items-stretch transition-all duration-300">
       {/* ============================================================= */}
       {/* LEFT COLUMN: HIGH-CRAFT MEDIA SHOWCASE (lg:col-span-5)        */}
       {/* ============================================================= */}
       <div className="lg:col-span-5 relative min-h-[380px] lg:min-h-full w-full bg-black rounded-none overflow-hidden flex flex-col justify-end">
-        {/* Dynamic Video Showcase with poster fallback */}
+        {/* Dynamic Video / Image Showcase with poster fallback */}
         <div className="absolute inset-0 w-full h-full">
-          <video
-            key={mode}
-            autoPlay
-            loop
-            muted
-            playsInline
-            poster="/assets/admin-hero-watch.jpg"
-            className="absolute inset-0 w-full h-full object-cover object-center scale-[1.02] transition-transform duration-700 ease-out"
-          >
-            <source
-              src={mode === "signin" ? "/assets/login%20page.mp4" : "/assets/account%20creation.mp4"}
-              type="video/mp4"
+          {isImageMedia ? (
+            <img
+              src={activeVideoSrc}
+              alt="Horologe Royale Authentication"
+              className="absolute inset-0 w-full h-full object-cover object-center scale-[1.02] transition-transform duration-700 ease-out"
             />
-            <source
-              src={mode === "signin" ? "/assets/login page.mp4" : "/assets/account creation.mp4"}
-              type="video/mp4"
-            />
-          </video>
+          ) : (
+            <video
+              key={`${mode}-${activeVideoSrc}`}
+              autoPlay
+              loop
+              muted
+              playsInline
+              poster="/assets/admin-hero-watch.jpg"
+              className="absolute inset-0 w-full h-full object-cover object-center scale-[1.02] transition-transform duration-700 ease-out"
+            >
+              <source
+                src={activeVideoSrc}
+                type={activeVideoSrc.toLowerCase().endsWith(".webm") ? "video/webm" : "video/mp4"}
+              />
+            </video>
+          )}
           {/* Rich cinematic gradient vignette overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/20 pointer-events-none" />
         </div>
@@ -253,6 +319,15 @@ function AuthCardContent({ initialMode = "signin" }: AuthCardProps) {
             </p>
           </motion.div>
         </div>
+
+        {/* Optional Redirect Link (only active if linkUrl is configured) */}
+        {activeLink && (
+          <BannerLink
+            href={activeLink}
+            className="absolute inset-0 z-20 cursor-pointer"
+            aria-label="Visit destination"
+          />
+        )}
       </div>
 
       {/* ============================================================= */}

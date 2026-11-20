@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import BannerLink from "@/components/BannerLink";
 
 const faqItems = [
   {
@@ -35,8 +36,18 @@ const faqItems = [
   },
 ];
 
-export default function FaqSection() {
+interface FaqSectionProps {
+  banners?: Record<string, { desktopUrl?: string; mobileUrl?: string; linkUrl?: string; mediaType?: string }>;
+}
+
+export default function FaqSection({ banners = {} }: FaqSectionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  const desktopStorefront =
+    banners?.["faq-storefront"]?.desktopUrl || "/assets/FAQS-desktop.png";
+  const mobileStorefront =
+    banners?.["faq-storefront"]?.mobileUrl || desktopStorefront || "/assets/FAQS-mobile.png";
+  const faqLink = banners?.["faq-storefront"]?.linkUrl?.trim();
 
   const toggleAccordion = (index: number) => {
     setOpenIndex((prev) => (prev === index ? null : index));
@@ -50,11 +61,21 @@ export default function FaqSection() {
       <div className="hidden md:flex w-full items-stretch overflow-hidden">
         {/* Left Column (Storefront Visual - preserved exactly) */}
         <div className="w-[28%] lg:w-[30%] xl:w-[29%] max-w-[380px] lg:max-w-[420px] relative self-stretch select-none flex-shrink-0">
-          <img
-            src="/assets/FAQS-desktop.png"
-            alt="Horologe Royale Storefront"
-            className="w-full h-full object-cover object-center block"
-          />
+          {faqLink ? (
+            <BannerLink href={faqLink} className="block w-full h-full cursor-pointer">
+              <img
+                src={desktopStorefront}
+                alt="Horologe Royale Storefront"
+                className="w-full h-full object-cover object-center block"
+              />
+            </BannerLink>
+          ) : (
+            <img
+              src={desktopStorefront}
+              alt="Horologe Royale Storefront"
+              className="w-full h-full object-cover object-center block"
+            />
+          )}
         </div>
 
         {/* Right Column: FAQ Content */}
@@ -113,11 +134,21 @@ export default function FaqSection() {
       <div className="block md:hidden w-full">
         {/* Top: Storefront Image */}
         <div className="w-full h-[260px] sm:h-[300px] overflow-hidden select-none">
-          <img
-            src="/assets/FAQS-mobile.png"
-            alt="Horologe Royale Storefront"
-            className="w-full h-full object-cover object-top block"
-          />
+          {faqLink ? (
+            <BannerLink href={faqLink} className="block w-full h-full cursor-pointer">
+              <img
+                src={mobileStorefront}
+                alt="Horologe Royale Storefront"
+                className="w-full h-full object-cover object-top block"
+              />
+            </BannerLink>
+          ) : (
+            <img
+              src={mobileStorefront}
+              alt="Horologe Royale Storefront"
+              className="w-full h-full object-cover object-top block"
+            />
+          )}
         </div>
 
         {/* Bottom: FAQ Content */}

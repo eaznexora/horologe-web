@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import BannerLink from "@/components/BannerLink";
 
 const DESKTOP_HERO_CARDS = [
   { id: "mtw-1", src: "/assets/MTW-1.png", alt: "Buy New Watches" },
@@ -29,7 +30,35 @@ const MOBILE_SLIDER_BASE = [
 // Duplicate for continuous seamless auto-scrolling
 const MOBILE_SLIDER_CARDS = [...MOBILE_SLIDER_BASE, ...MOBILE_SLIDER_BASE];
 
-export default function ExperienceSection() {
+interface ExperienceSectionProps {
+  banners?: Record<string, { desktopUrl?: string; mobileUrl?: string; linkUrl?: string; mediaType?: string }>;
+}
+
+export default function ExperienceSection({ banners = {} }: ExperienceSectionProps) {
+  const desktopHeroCards = DESKTOP_HERO_CARDS.map((card) => ({
+    ...card,
+    src: banners?.[card.id]?.desktopUrl || card.src,
+    linkUrl: banners?.[card.id]?.linkUrl?.trim() || "",
+  }));
+
+  const desktopBottomCards = DESKTOP_BOTTOM_CARDS.map((card) => ({
+    ...card,
+    src: banners?.[card.id]?.desktopUrl || card.src,
+    linkUrl: banners?.[card.id]?.linkUrl?.trim() || "",
+  }));
+
+  const mobileSliderBase = MOBILE_SLIDER_BASE.map((card) => {
+    const slotKey = card.id.replace("m-", "mtw-");
+    const slot = banners?.[slotKey];
+    return {
+      ...card,
+      src: slot?.mobileUrl || slot?.desktopUrl || card.src,
+      linkUrl: slot?.linkUrl?.trim() || "",
+    };
+  });
+
+  const mobileSliderCards = [...mobileSliderBase, ...mobileSliderBase];
+
   const sliderRef = useRef<HTMLDivElement>(null);
   const isInteractingRef = useRef(false);
   const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -97,39 +126,67 @@ export default function ExperienceSection() {
 
         {/* Row 1: Top Hero Pair */}
         <div className="grid grid-cols-2 gap-5 lg:gap-6 mb-5 lg:mb-6">
-          {DESKTOP_HERO_CARDS.map((card) => (
-            <div 
-              key={card.id} 
-              className="relative h-[260px] lg:h-[300px] overflow-hidden group shadow-[0_8px_24px_rgba(44,36,30,0.06)]"
-            >
+          {desktopHeroCards.map((card) => {
+            const img = (
               <Image 
                 src={card.src} 
                 alt={card.alt} 
                 fill 
                 priority 
+                unoptimized={card.src.startsWith("/api/media/")}
                 sizes="(max-width: 1440px) 50vw, 700px" 
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]" 
               />
-            </div>
-          ))}
+            );
+            return card.linkUrl ? (
+              <BannerLink
+                key={card.id}
+                href={card.linkUrl}
+                className="relative h-[260px] lg:h-[300px] overflow-hidden group shadow-[0_8px_24px_rgba(44,36,30,0.06)] block cursor-pointer"
+              >
+                {img}
+              </BannerLink>
+            ) : (
+              <div 
+                key={card.id} 
+                className="relative h-[260px] lg:h-[300px] overflow-hidden group shadow-[0_8px_24px_rgba(44,36,30,0.06)]"
+              >
+                {img}
+              </div>
+            );
+          })}
         </div>
 
         {/* Row 2: Bottom 5 Columns */}
         <div className="grid grid-cols-5 gap-4 lg:gap-5 mb-6 lg:mb-7">
-          {DESKTOP_BOTTOM_CARDS.map((card) => (
-            <div 
-              key={card.id} 
-              className="relative aspect-[3/4] h-[280px] lg:h-[320px] overflow-hidden group shadow-[0_6px_20px_rgba(44,36,30,0.05)]"
-            >
+          {desktopBottomCards.map((card) => {
+            const img = (
               <Image 
                 src={card.src} 
                 alt={card.alt} 
                 fill 
+                unoptimized={card.src.startsWith("/api/media/")}
                 sizes="(max-width: 1440px) 20vw, 280px" 
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-105" 
               />
-            </div>
-          ))}
+            );
+            return card.linkUrl ? (
+              <BannerLink
+                key={card.id}
+                href={card.linkUrl}
+                className="relative aspect-[3/4] h-[280px] lg:h-[320px] overflow-hidden group shadow-[0_6px_20px_rgba(44,36,30,0.05)] block cursor-pointer"
+              >
+                {img}
+              </BannerLink>
+            ) : (
+              <div 
+                key={card.id} 
+                className="relative aspect-[3/4] h-[280px] lg:h-[320px] overflow-hidden group shadow-[0_6px_20px_rgba(44,36,30,0.05)]"
+              >
+                {img}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -159,20 +216,34 @@ export default function ExperienceSection() {
             msOverflowStyle: "none",
           }}
         >
-          {MOBILE_SLIDER_CARDS.map((card, index) => (
-            <div
-              key={`${card.id}-${index}`}
-              className="w-[72vw] max-w-[280px] aspect-[3/4] shrink-0 snap-center relative overflow-hidden shadow-[0_6px_20px_rgba(44,36,30,0.06)] rounded-none"
-            >
+          {mobileSliderCards.map((card, index) => {
+            const img = (
               <Image 
                 src={card.src} 
                 alt={card.alt} 
                 fill 
+                unoptimized={card.src.startsWith("/api/media/")}
                 sizes="72vw" 
                 className="object-cover" 
               />
-            </div>
-          ))}
+            );
+            return card.linkUrl ? (
+              <BannerLink
+                key={`${card.id}-${index}`}
+                href={card.linkUrl}
+                className="w-[72vw] max-w-[280px] aspect-[3/4] shrink-0 snap-center relative overflow-hidden shadow-[0_6px_20px_rgba(44,36,30,0.06)] rounded-none block cursor-pointer"
+              >
+                {img}
+              </BannerLink>
+            ) : (
+              <div
+                key={`${card.id}-${index}`}
+                className="w-[72vw] max-w-[280px] aspect-[3/4] shrink-0 snap-center relative overflow-hidden shadow-[0_6px_20px_rgba(44,36,30,0.06)] rounded-none"
+              >
+                {img}
+              </div>
+            );
+          })}
         </div>
       </div>
 

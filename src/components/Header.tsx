@@ -53,7 +53,7 @@ export default function Header() {
           <Link href="#about" className="hover:text-[#9D7E50] transition-colors cursor-pointer">
             ABOUT US
           </Link>
-          <Link href="#insights" className="hover:text-[#9D7E50] transition-colors cursor-pointer">
+          <Link href="/insights" className="hover:text-[#9D7E50] transition-colors cursor-pointer">
             INSIGHTS
           </Link>
           <Link className="hover:text-[#9D7E50] transition-colors cursor-pointer whitespace-nowrap" href="/sell-your-luxury">

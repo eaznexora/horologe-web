@@ -1,6 +1,32 @@
 import React from "react";
+import BannerLink from "@/components/BannerLink";
 
-export default function HouseGallery() {
+interface HouseGalleryProps {
+  banners?: Record<string, { desktopUrl?: string; mobileUrl?: string; linkUrl?: string; mediaType?: string }>;
+}
+
+export default function HouseGallery({ banners = {} }: HouseGalleryProps) {
+  // Desktop Media URLs
+  const dImg1 = banners?.["house-gallery-1"]?.desktopUrl || "/assets/house-1.png";
+  const dImg2 = banners?.["house-gallery-2"]?.desktopUrl || "/assets/house-2.png";
+  const dImg3 = banners?.["house-gallery-3"]?.desktopUrl || "/assets/house-3.png";
+  const dImg5 = banners?.["house-gallery-5"]?.desktopUrl || "/assets/house-5.png";
+  const dImg4 = banners?.["house-gallery-4"]?.desktopUrl || "/assets/house-4.png";
+
+  // Mobile Media URLs
+  const mImg1 = banners?.["house-gallery-1"]?.mobileUrl || dImg1;
+  const mImg2 = banners?.["house-gallery-2"]?.mobileUrl || dImg2;
+  const mImg3 = banners?.["house-gallery-3"]?.mobileUrl || dImg3;
+  const mImg5 = banners?.["house-gallery-5"]?.mobileUrl || dImg5;
+  const mImg4 = banners?.["house-gallery-4"]?.mobileUrl || dImg4;
+
+  // Optional Destination Links
+  const link1 = banners?.["house-gallery-1"]?.linkUrl?.trim();
+  const link2 = banners?.["house-gallery-2"]?.linkUrl?.trim();
+  const link3 = banners?.["house-gallery-3"]?.linkUrl?.trim();
+  const link4 = banners?.["house-gallery-4"]?.linkUrl?.trim();
+  const link5 = banners?.["house-gallery-5"]?.linkUrl?.trim();
+
   return (
     <section className="w-full bg-[#E7DDD2] relative overflow-hidden">
       {/* =========================================
@@ -22,40 +48,90 @@ export default function HouseGallery() {
           <div className="grid grid-cols-2 gap-4 lg:gap-6 mb-4 lg:mb-6">
             {/* Left Column: Tall image */}
             <div className="w-full">
-              <img
-                src="/assets/house-1.png"
-                alt="Wrist shot"
-                className="w-full h-[480px] lg:h-[540px] object-cover"
-              />
+              {link1 ? (
+                <BannerLink href={link1} className="block cursor-pointer">
+                  <img
+                    src={dImg1}
+                    alt="Wrist shot"
+                    className="w-full h-[480px] lg:h-[540px] object-cover"
+                  />
+                </BannerLink>
+              ) : (
+                <img
+                  src={dImg1}
+                  alt="Wrist shot"
+                  className="w-full h-[480px] lg:h-[540px] object-cover"
+                />
+              )}
             </div>
 
             {/* Right Column: Two stacked images */}
             <div className="flex flex-col gap-4 lg:gap-6">
-              <img
-                src="/assets/house-2.png"
-                alt="Watch in nature"
-                className="w-full h-[230px] lg:h-[258px] object-cover"
-              />
-              <img
-                src="/assets/house-3.png"
-                alt="Submariner close-up"
-                className="w-full h-[230px] lg:h-[258px] object-cover"
-              />
+              {link2 ? (
+                <BannerLink href={link2} className="block cursor-pointer">
+                  <img
+                    src={dImg2}
+                    alt="Watch in nature"
+                    className="w-full h-[230px] lg:h-[258px] object-cover"
+                  />
+                </BannerLink>
+              ) : (
+                <img
+                  src={dImg2}
+                  alt="Watch in nature"
+                  className="w-full h-[230px] lg:h-[258px] object-cover"
+                />
+              )}
+              {link3 ? (
+                <BannerLink href={link3} className="block cursor-pointer">
+                  <img
+                    src={dImg3}
+                    alt="Submariner close-up"
+                    className="w-full h-[230px] lg:h-[258px] object-cover"
+                  />
+                </BannerLink>
+              ) : (
+                <img
+                  src={dImg3}
+                  alt="Submariner close-up"
+                  className="w-full h-[230px] lg:h-[258px] object-cover"
+                />
+              )}
             </div>
           </div>
 
           {/* Bottom Row */}
           <div className="grid grid-cols-2 gap-4 lg:gap-6 mb-4">
-            <img
-              src="/assets/house-5.png"
-              alt="Vintage military dial"
-              className="w-full h-[260px] lg:h-[290px] object-cover"
-            />
-            <img
-              src="/assets/house-4.png"
-              alt="Steel dive watch"
-              className="w-full h-[260px] lg:h-[290px] object-cover"
-            />
+            {link5 ? (
+              <BannerLink href={link5} className="block cursor-pointer">
+                <img
+                  src={dImg5}
+                  alt="Vintage military dial"
+                  className="w-full h-[260px] lg:h-[290px] object-cover"
+                />
+              </BannerLink>
+            ) : (
+              <img
+                src={dImg5}
+                alt="Vintage military dial"
+                className="w-full h-[260px] lg:h-[290px] object-cover"
+              />
+            )}
+            {link4 ? (
+              <BannerLink href={link4} className="block cursor-pointer">
+                <img
+                  src={dImg4}
+                  alt="Steel dive watch"
+                  className="w-full h-[260px] lg:h-[290px] object-cover"
+                />
+              </BannerLink>
+            ) : (
+              <img
+                src={dImg4}
+                alt="Steel dive watch"
+                className="w-full h-[260px] lg:h-[290px] object-cover"
+              />
+            )}
           </div>
         </div>
 
@@ -96,38 +172,88 @@ export default function HouseGallery() {
         <div className="w-full flex flex-col">
           {/* Cluster 1: Left tall + Right 2 stacked */}
           <div className="w-full grid grid-cols-2 gap-0">
-            <img
-              src="/assets/house-1.png"
-              alt="Wrist shot"
-              className="w-full h-[220px] object-cover block"
-            />
+            {link1 ? (
+              <BannerLink href={link1} className="block cursor-pointer">
+                <img
+                  src={mImg1}
+                  alt="Wrist shot"
+                  className="w-full h-[220px] object-cover block"
+                />
+              </BannerLink>
+            ) : (
+              <img
+                src={mImg1}
+                alt="Wrist shot"
+                className="w-full h-[220px] object-cover block"
+              />
+            )}
             <div className="w-full h-[220px] flex flex-col">
-              <img
-                src="/assets/house-2.png"
-                alt="Watch in nature"
-                className="w-full h-[110px] object-cover block"
-              />
-              <img
-                src="/assets/house-3.png"
-                alt="Submariner close-up"
-                className="w-full h-[110px] object-cover block"
-              />
+              {link2 ? (
+                <BannerLink href={link2} className="block cursor-pointer">
+                  <img
+                    src={mImg2}
+                    alt="Watch in nature"
+                    className="w-full h-[110px] object-cover block"
+                  />
+                </BannerLink>
+              ) : (
+                <img
+                  src={mImg2}
+                  alt="Watch in nature"
+                  className="w-full h-[110px] object-cover block"
+                />
+              )}
+              {link3 ? (
+                <BannerLink href={link3} className="block cursor-pointer">
+                  <img
+                    src={mImg3}
+                    alt="Submariner close-up"
+                    className="w-full h-[110px] object-cover block"
+                  />
+                </BannerLink>
+              ) : (
+                <img
+                  src={mImg3}
+                  alt="Submariner close-up"
+                  className="w-full h-[110px] object-cover block"
+                />
+              )}
             </div>
           </div>
 
           {/* Cluster 2: Full width military watch */}
-          <img
-            src="/assets/house-5.png"
-            alt="Vintage military dial"
-            className="w-full h-[180px] object-cover block"
-          />
+          {link5 ? (
+            <BannerLink href={link5} className="block cursor-pointer">
+              <img
+                src={mImg5}
+                alt="Vintage military dial"
+                className="w-full h-[180px] object-cover block"
+              />
+            </BannerLink>
+          ) : (
+            <img
+              src={mImg5}
+              alt="Vintage military dial"
+              className="w-full h-[180px] object-cover block"
+            />
+          )}
 
           {/* Cluster 3: Full width dive watch */}
-          <img
-            src="/assets/house-4.png"
-            alt="Steel dive watch"
-            className="w-full h-[190px] object-cover block"
-          />
+          {link4 ? (
+            <BannerLink href={link4} className="block cursor-pointer">
+              <img
+                src={mImg4}
+                alt="Steel dive watch"
+                className="w-full h-[190px] object-cover block"
+              />
+            </BannerLink>
+          ) : (
+            <img
+              src={mImg4}
+              alt="Steel dive watch"
+              className="w-full h-[190px] object-cover block"
+            />
+          )}
 
           {/* Mobile Action Strip: Flush below image */}
           <div className="w-full bg-[#C6B29A] py-3.5 flex items-center justify-center">

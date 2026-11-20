@@ -2,10 +2,21 @@
 
 import React, { useEffect, useRef } from "react";
 import Link from "next/link";
+import BannerLink from "@/components/BannerLink";
 
-function GenderCollections() {
+interface GenderCollectionsProps {
+  banners?: Record<string, { desktopUrl?: string; mobileUrl?: string; linkUrl?: string; mediaType?: string }>;
+}
+
+function GenderCollections({ banners = {} }: GenderCollectionsProps) {
   const menVideoRef = useRef<HTMLVideoElement>(null);
   const womenVideoRef = useRef<HTMLVideoElement>(null);
+
+  const menSrc = banners?.["gender-men"]?.desktopUrl || "/assets/men.mp4";
+  const womenSrc = banners?.["gender-women"]?.desktopUrl || "/assets/women.mp4";
+
+  const menHref = banners?.["gender-men"]?.linkUrl?.trim() || "/collections";
+  const womenHref = banners?.["gender-women"]?.linkUrl?.trim() || "/collections";
 
   useEffect(() => {
     [menVideoRef, womenVideoRef].forEach((ref) => {
@@ -27,20 +38,21 @@ function GenderCollections() {
         });
       }
     });
-  }, []);
+  }, [menSrc, womenSrc]);
 
   return (
     <section className="w-full bg-[#E7DDD2] py-12 sm:py-16 lg:py-20 relative">
       <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 lg:gap-8">
           {/* Men's Timepieces Card */}
-          <Link
-            href="/collections"
+          <BannerLink
+            href={menHref}
             className="relative overflow-hidden group cursor-pointer aspect-[16/11] sm:aspect-[4/3] md:aspect-[16/11] lg:aspect-[4/3] w-full bg-[#1A1816] block"
           >
             <video
               ref={menVideoRef}
-              src="/assets/men.mp4"
+              key={menSrc}
+              src={menSrc}
               autoPlay
               loop
               muted
@@ -49,7 +61,7 @@ function GenderCollections() {
               className="w-full h-full object-cover object-right group-hover:scale-105 transition-transform duration-700 ease-out block"
               style={{ objectPosition: "right center" }}
             >
-              <source src="/assets/men.mp4" type="video/mp4" />
+              <source src={menSrc} type={menSrc.endsWith(".webm") ? "video/webm" : "video/mp4"} />
             </video>
 
             {/* Gradient Vignette Overlay */}
@@ -65,16 +77,17 @@ function GenderCollections() {
                 EXPLORE COLLECTION &rarr;
               </span>
             </div>
-          </Link>
+          </BannerLink>
 
           {/* Women's Timepieces Card */}
-          <Link
-            href="/collections"
+          <BannerLink
+            href={womenHref}
             className="relative overflow-hidden group cursor-pointer aspect-[16/11] sm:aspect-[4/3] md:aspect-[16/11] lg:aspect-[4/3] w-full bg-[#1A1816] block"
           >
             <video
               ref={womenVideoRef}
-              src="/assets/women.mp4"
+              key={womenSrc}
+              src={womenSrc}
               autoPlay
               loop
               muted
@@ -83,7 +96,7 @@ function GenderCollections() {
               className="w-full h-full object-cover object-right group-hover:scale-105 transition-transform duration-700 ease-out block"
               style={{ objectPosition: "right center" }}
             >
-              <source src="/assets/women.mp4" type="video/mp4" />
+              <source src={womenSrc} type={womenSrc.endsWith(".webm") ? "video/webm" : "video/mp4"} />
             </video>
 
             {/* Gradient Vignette Overlay */}
@@ -99,7 +112,7 @@ function GenderCollections() {
                 EXPLORE COLLECTION &rarr;
               </span>
             </div>
-          </Link>
+          </BannerLink>
         </div>
       </div>
     </section>

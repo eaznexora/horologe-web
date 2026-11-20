@@ -219,13 +219,19 @@ export async function POST(req: Request) {
       .filter((k: any) => k.label && k.value);
 
     // Normalize SEO
+    const isExternalCanonical =
+      seo?.canonicalUrl && /^https?:\/\//i.test(seo.canonicalUrl.trim());
+    const canonicalUrl = isExternalCanonical
+      ? seo.canonicalUrl.trim()
+      : `/timepiece/${finalSlug}`;
+
     const normalizedSeo = {
       metaTitle: seo?.metaTitle?.trim() || `${name} | Horologe Royale`,
       metaDescription:
         seo?.metaDescription?.trim() ||
         tagline ||
         `Discover the ${name} at Horologe Royale. Certified luxury timepieces with verified provenance.`,
-      canonicalUrl: seo?.canonicalUrl?.trim() || `/timepiece/${finalSlug}`,
+      canonicalUrl,
       keywords: Array.isArray(seo?.keywords)
         ? seo.keywords
         : typeof seo?.focusKeywords === 'string'
@@ -408,13 +414,19 @@ export async function PUT(req: Request) {
       .filter((k: any) => k.label && k.value);
 
     // Normalize SEO
+    const isExternalCanonical =
+      seo?.canonicalUrl && /^https?:\/\//i.test(seo.canonicalUrl.trim());
+    const canonicalUrl = isExternalCanonical
+      ? seo.canonicalUrl.trim()
+      : `/timepiece/${finalSlug}`;
+
     const normalizedSeo = {
       metaTitle: seo?.metaTitle?.trim() || `${name} | Horologe Royale`,
       metaDescription:
         seo?.metaDescription?.trim() ||
         tagline ||
         `Discover the ${name} at Horologe Royale. Certified luxury timepieces with verified provenance.`,
-      canonicalUrl: seo?.canonicalUrl?.trim() || `/timepiece/${finalSlug}`,
+      canonicalUrl,
       keywords: Array.isArray(seo?.keywords)
         ? seo.keywords
         : typeof seo?.focusKeywords === 'string'

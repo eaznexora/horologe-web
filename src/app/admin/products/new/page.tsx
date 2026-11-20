@@ -68,6 +68,18 @@ const INITIAL_IMAGE_SLOTS: ImageSlot[] = [
   { id: 4, label: "Gallery Slot 4 (Dial Detail)", file: null, previewUrl: "", fileName: "" },
 ];
 
+function sanitizeSlugInput(val: string): string {
+  if (!val) return "";
+  return val
+    .replace(/^https?:\/\/[^\/]+/i, "")
+    .replace(/^\/?timepiece\/?/i, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export default function AddProductPage() {
   const router = useRouter();
 
@@ -79,6 +91,7 @@ export default function AddProductPage() {
   // Core Identity State (All initialized to empty strings / empty arrays)
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [reference, setReference] = useState("");
@@ -192,15 +205,13 @@ export default function AddProductPage() {
   // Auto-slug generator on name input
   const handleNameChange = (val: string) => {
     setName(val);
-    const autoSlug = val
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/[\s_-]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-    setSlug(autoSlug);
+    if (!slugManuallyEdited) {
+      const autoSlug = sanitizeSlugInput(val);
+      setSlug(autoSlug);
+      setCanonicalUrl(autoSlug ? `/timepiece/${autoSlug}` : "");
+    }
     if (!metaTitle) {
-      setMetaTitle(`${val} | Horologe Royale`);
+      setMetaTitle(val ? `${val} | Horologe Royale` : "");
     }
   };
 
@@ -319,6 +330,7 @@ export default function AddProductPage() {
   const handleReset = () => {
     setName("");
     setSlug("");
+    setSlugManuallyEdited(false);
     setBrand("");
     setModel("");
     setReference("");
@@ -401,7 +413,7 @@ export default function AddProductPage() {
         seo: {
           metaTitle: metaTitle || `${name} | Horologe Royale`,
           metaDescription: metaDescription || tagline,
-          canonicalUrl: canonicalUrl || `/timepiece/${slug}`,
+          canonicalUrl: slug.trim() ? `/timepiece/${slug.trim()}` : undefined,
           focusKeywords,
         },
         status: actionType,
@@ -565,16 +577,21 @@ export default function AddProductPage() {
                 <label className="text-xs font-semibold text-[#2C241E] mb-1.5 block">
                   Product Slug / URL Path
                 </label>
-                <div className="flex items-center bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-3 py-2 text-xs text-[#2C241E]">
-                  <span className="text-[#8C7A6B] font-mono text-[11px] select-none">
+                <div className="flex items-center w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl overflow-hidden focus-within:border-[#5C4529]/60 shadow-xs">
+                  <span className="px-3 py-2 text-xs font-mono text-[#8C7A6B] bg-[#EFE8DD]/60 border-r border-[#D4C6B3]/50 select-none shrink-0">
                     /timepiece/
                   </span>
                   <input
                     type="text"
                     placeholder="rolex-cosmograph-daytona"
                     value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    className="flex-1 bg-transparent outline-none text-[#2C241E] font-mono ml-1 text-xs"
+                    onChange={(e) => {
+                      const clean = sanitizeSlugInput(e.target.value);
+                      setSlug(clean);
+                      setSlugManuallyEdited(true);
+                      setCanonicalUrl(clean ? `/timepiece/${clean}` : "");
+                    }}
+                    className="w-full bg-transparent px-3 py-2 text-xs text-[#2C241E] font-mono outline-none"
                   />
                 </div>
               </div>
@@ -1069,13 +1086,23 @@ export default function AddProductPage() {
                   <label className="text-xs font-semibold text-[#2C241E] mb-1.5 block">
                     Canonical URL Slug
                   </label>
-                  <input
-                    type="text"
-                    placeholder={`/timepiece/${slug || "slug"}`}
-                    value={canonicalUrl}
-                    onChange={(e) => setCanonicalUrl(e.target.value)}
-                    className="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2 text-xs text-[#2C241E] font-mono outline-none focus:border-[#5C4529]/60 shadow-xs"
-                  />
+                  <div className="flex items-center w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl overflow-hidden focus-within:border-[#5C4529]/60 shadow-xs">
+                    <span className="px-3 py-2 text-xs font-mono text-[#8C7A6B] bg-[#EFE8DD]/60 border-r border-[#D4C6B3]/50 select-none shrink-0">
+                      /timepiece/
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="rolex-cosmograph-daytona"
+                      value={slug}
+                      onChange={(e) => {
+                        const clean = sanitizeSlugInput(e.target.value);
+                        setSlug(clean);
+                        setSlugManuallyEdited(true);
+                        setCanonicalUrl(clean ? `/timepiece/${clean}` : "");
+                      }}
+                      className="w-full bg-transparent px-3 py-2 text-xs text-[#2C241E] font-mono outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -1101,7 +1128,7 @@ export default function AddProductPage() {
                   {metaTitle || `${name || "Timepiece Title"} | Horologe Royale`}
                 </p>
                 <p className="text-[11px] text-[#006621] truncate font-mono">
-                  https://horologe.com{canonicalUrl || `/timepiece/${slug || "product-slug"}`}
+                  https://horologe.com/timepiece/{slug || "product-slug"}
                 </p>
                 <p className="text-xs text-[#545454] line-clamp-2 mt-0.5 leading-snug">
                   {metaDescription ||

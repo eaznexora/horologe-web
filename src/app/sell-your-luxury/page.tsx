@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import BannerLink from "@/components/BannerLink";
 import { Camera, X, CheckCircle2, ChevronDown, ArrowRight, Check } from "lucide-react";
 
 interface UploadedPhoto {
@@ -161,6 +162,28 @@ export default function SellYourLuxuryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [referenceId, setReferenceId] = useState("");
+  const [banners, setBanners] = useState<Record<string, { desktopUrl?: string; mobileUrl?: string; linkUrl?: string }>>({});
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/banners?page=sell-your-luxury&t=${Date.now()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data?.banners) {
+          setBanners(data.banners);
+        }
+      })
+      .catch(() => {});
+
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const sellHeroDesktop = banners["sell-hero"]?.desktopUrl || "/assets/sell-your-luxury-hero.jpg";
+  const sellHeroSrc = (isMobile && banners["sell-hero"]?.mobileUrl) || sellHeroDesktop;
+  const sellHeroLink = banners["sell-hero"]?.linkUrl?.trim();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -277,10 +300,11 @@ export default function SellYourLuxuryPage() {
             {/* Background Editorial Watch Photography */}
             <div className="absolute inset-0 z-0">
               <Image
-                src="/assets/sell-your-luxury-hero.jpg"
+                src={sellHeroSrc}
                 alt="Rolex Cosmograph Daytona - Sell Your Luxury Watch"
                 fill
                 priority
+                unoptimized={sellHeroSrc.startsWith("/api/media/")}
                 className="object-cover object-bottom"
                 sizes="(max-width: 1024px) 100vw, 45vw"
               />
@@ -301,6 +325,15 @@ export default function SellYourLuxuryPage() {
 
             {/* Empty bottom spacer to frame the watch and travertine block */}
             <div className="relative z-10 p-6 sm:p-10 pointer-events-none" />
+
+            {/* Optional Destination Redirect Link (active only when configured) */}
+            {sellHeroLink && (
+              <BannerLink
+                href={sellHeroLink}
+                className="absolute inset-0 z-20 cursor-pointer"
+                aria-label="Visit destination"
+              />
+            )}
           </div>
 
           {/* ========================================================================= */}

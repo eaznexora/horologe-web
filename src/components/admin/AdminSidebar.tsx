@@ -12,6 +12,7 @@ import {
   Users,
   Mail,
   ClipboardCheck,
+  BookOpen,
   BarChart3,
   Layers,
   Settings,
@@ -30,6 +31,7 @@ export default function AdminSidebar({ onNavigate, className = "" }: AdminSideba
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(true);
+  const [bannersOpen, setBannersOpen] = useState(pathname?.startsWith('/admin/banners') ?? true);
 
   const handleLinkClick = () => {
     setMobileOpen(false);
@@ -89,10 +91,10 @@ export default function AdminSidebar({ onNavigate, className = "" }: AdminSideba
       hasChevron: false,
     },
     {
-      label: "Inventory",
-      href: "/admin/inventory",
+      label: "Insights",
+      href: "/admin/insights",
       isDashboard: false,
-      icon: ClipboardCheck,
+      icon: BookOpen,
       hasChevron: false,
     },
     {
@@ -181,7 +183,7 @@ export default function AdminSidebar({ onNavigate, className = "" }: AdminSideba
                   {/* 2. Expandable Submenu Accordion */}
                   <div
                     className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                      productsOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+                      productsOpen ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
                     }`}
                   >
                     <div className="relative pl-7 py-1 flex flex-col gap-1 mt-1">
@@ -212,6 +214,146 @@ export default function AdminSidebar({ onNavigate, className = "" }: AdminSideba
                         }`}
                       >
                         Add a Product
+                      </Link>
+
+                      {/* Submenu Item 3: Bulk Import (CSV + ZIP) */}
+                      <Link
+                        href="/admin/products/bulk-import"
+                        onClick={handleLinkClick}
+                        className={`text-[13px] transition-colors cursor-pointer block pl-2 py-1.5 ${
+                          pathname === "/admin/products/bulk-import"
+                            ? "text-[#5C4529] font-semibold"
+                            : "text-[#7A6C5E] hover:text-[#2C241E] font-medium"
+                        }`}
+                      >
+                        Bulk Import (CSV + ZIP)
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Special Accordion Handler for "Banners"
+            if (item.label === "Banners") {
+              const isBannersActive = pathname?.startsWith("/admin/banners");
+              return (
+                <div key="banners-group" className="flex flex-col">
+                  {/* 1. Banners Trigger Row */}
+                  <button
+                    type="button"
+                    onClick={() => setBannersOpen((prev) => !prev)}
+                    className={`w-full flex items-center justify-between py-2.5 px-3 rounded-xl transition-all cursor-pointer select-none text-left ${
+                      isBannersActive || bannersOpen
+                        ? "bg-[#F9FAFB]/80 shadow-xs"
+                        : "hover:bg-white/35 text-[#475467]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <Layers className="w-5 h-5 text-black shrink-0" />
+                      <span
+                        className={`text-[15px] tracking-normal truncate ${
+                          isBannersActive || bannersOpen
+                            ? "text-[#2C241E] font-semibold"
+                            : "text-[#475467] font-normal"
+                        }`}
+                      >
+                        Banners
+                      </span>
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 text-[#64748B] shrink-0 transition-transform duration-200 ${
+                        bannersOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* 2. Expandable Submenu Accordion */}
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      bannersOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    <div className="relative pl-7 py-1 flex flex-col gap-1 mt-1">
+                      {/* Connecting Vertical Guide Line */}
+                      <div className="absolute left-[22px] top-0 bottom-2 w-[1px] bg-[#D4C6B3]/60" />
+
+                      {/* Submenu Item 1: Home Page */}
+                      <Link
+                        href="/admin/banners/home"
+                        onClick={handleLinkClick}
+                        className={`text-[13px] transition-colors cursor-pointer block pl-2 py-1.5 ${
+                          pathname === "/admin/banners/home"
+                            ? "text-[#5C4529] font-semibold"
+                            : "text-[#7A6C5E] hover:text-[#2C241E] font-medium"
+                        }`}
+                      >
+                        Home Page
+                      </Link>
+
+                      {/* Submenu Item 2: Collections Page */}
+                      <Link
+                        href="/admin/banners/collections"
+                        onClick={handleLinkClick}
+                        className={`text-[13px] transition-colors cursor-pointer block pl-2 py-1.5 ${
+                          pathname === "/admin/banners/collections"
+                            ? "text-[#5C4529] font-semibold"
+                            : "text-[#7A6C5E] hover:text-[#2C241E] font-medium"
+                        }`}
+                      >
+                        Collections Page
+                      </Link>
+
+                      {/* Submenu Item 3: Sell Your Luxury Page */}
+                      <Link
+                        href="/admin/banners/sell-your-luxury"
+                        onClick={handleLinkClick}
+                        className={`text-[13px] transition-colors cursor-pointer block pl-2 py-1.5 ${
+                          pathname === "/admin/banners/sell-your-luxury"
+                            ? "text-[#5C4529] font-semibold"
+                            : "text-[#7A6C5E] hover:text-[#2C241E] font-medium"
+                        }`}
+                      >
+                        Sell Your Luxury Page
+                      </Link>
+
+                      {/* Submenu Item 4: Concierge & Contact Page */}
+                      <Link
+                        href="/admin/banners/concierge"
+                        onClick={handleLinkClick}
+                        className={`text-[13px] transition-colors cursor-pointer block pl-2 py-1.5 ${
+                          pathname === "/admin/banners/concierge"
+                            ? "text-[#5C4529] font-semibold"
+                            : "text-[#7A6C5E] hover:text-[#2C241E] font-medium"
+                        }`}
+                      >
+                        Concierge & Contact Page
+                      </Link>
+
+                      {/* Submenu Item 5: Sign In / Log In Page */}
+                      <Link
+                        href="/admin/banners/auth"
+                        onClick={handleLinkClick}
+                        className={`text-[13px] transition-colors cursor-pointer block pl-2 py-1.5 ${
+                          pathname === "/admin/banners/auth"
+                            ? "text-[#5C4529] font-semibold"
+                            : "text-[#7A6C5E] hover:text-[#2C241E] font-medium"
+                        }`}
+                      >
+                        Sign In / Log In Page
+                      </Link>
+
+                      {/* Submenu Item 6: Insights Page */}
+                      <Link
+                        href="/admin/banners/insights"
+                        onClick={handleLinkClick}
+                        className={`text-[13px] transition-colors cursor-pointer block pl-2 py-1.5 ${
+                          pathname === "/admin/banners/insights"
+                            ? "text-[#5C4529] font-semibold"
+                            : "text-[#7A6C5E] hover:text-[#2C241E] font-medium"
+                        }`}
+                      >
+                        Insights Page
                       </Link>
                     </div>
                   </div>
@@ -306,17 +448,6 @@ export default function AdminSidebar({ onNavigate, className = "" }: AdminSideba
             );
           })}
         </nav>
-      </div>
-
-      {/* Sidebar Bottom Storefront Link */}
-      <div className="pt-4 border-t border-[#D4C6B3]/50 mt-4 shrink-0">
-        <Link
-          href="/"
-          className="text-xs text-[#5C4529] hover:underline flex items-center gap-1.5 px-1 font-medium tracking-wide transition-colors"
-        >
-          <span>Storefront</span>
-          <ArrowUpRight size={13} />
-        </Link>
       </div>
     </>
   );
